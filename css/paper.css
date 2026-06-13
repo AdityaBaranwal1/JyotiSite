@@ -1,0 +1,201 @@
+/* ============================================================
+   Jeevan Jyoti — paper.css
+   Design tokens, paper + ink foundation, typography, print.
+   Flat, fully 2D, ink-on-paper. No soft shadows, no gradients.
+   ============================================================ */
+
+:root {
+  /* -- The entire color system: four tokens -- */
+  --ink:    #1F2D50;  /* text, rules, borders, grids */
+  --paper:  #F6F1E5;  /* page background (carries grain) */
+  --panel:  #FDFBF4;  /* cards, boxes — solid, never textured */
+  --accent: #E8940A;  /* actions only */
+
+  /* -- Type -- */
+  --font-head: "Lora", Georgia, "Times New Roman", serif;
+  --font-body: "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --font-deva: "Tiro Devanagari Hindi", "Nirmala UI", serif;
+
+  /* -- Size system: body size editable 17–24px, reader scale on top -- */
+  --text-base: 19px;
+  --scale: 1;
+  --text-size: clamp(17px, calc(var(--text-base) * var(--scale)), 30px);
+
+  /* -- Rules & spacing -- */
+  --hairline: 1px solid var(--ink);
+  --rule-thick: 3px solid var(--ink);
+  --measure: 68ch;      /* comfortable reading width */
+  --page-max: 1080px;
+}
+
+/* ---------- Reset (small, honest) ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body, h1, h2, h3, h4, p, figure, blockquote, dl, dd, ul, ol { margin: 0; }
+img, svg { display: block; max-width: 100%; }
+button, input, select { font: inherit; color: inherit; }
+
+/* ---------- The paper ---------- */
+body {
+  background-color: var(--paper);
+  /* Grain baked into the page background only — panels cover it, text never
+     sits on visible texture. ~5% alpha fractal noise. */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer></filter><rect width="240" height="240" filter="url(%23g)"/></svg>');
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-size);
+  line-height: 1.6;
+}
+
+.sheet {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 20px 48px;
+}
+
+/* ---------- Ink typography ---------- */
+h1, h2, h3, h4 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+}
+h1 { font-size: calc(var(--text-size) * 2.4); }
+h2 { font-size: calc(var(--text-size) * 1.7); }
+h3 { font-size: calc(var(--text-size) * 1.3); }
+
+p  { max-width: var(--measure); }
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+a:hover { background: var(--accent); text-decoration-thickness: 3px; }
+
+::selection { background: var(--accent); color: var(--ink); }
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+
+/* Kicker — the all-caps label newspapers set above a headline */
+.kicker {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Byline / credit — small caps, never below 17px */
+.byline {
+  font-style: italic;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
+}
+
+/* Drop cap for lead paragraphs */
+.dropcap::first-letter {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 3.1em;
+  line-height: 0.85;
+  float: left;
+  padding: 0.04em 0.12em 0 0;
+}
+
+/* ---------- Rules: the only depth this paper has ---------- */
+hr.thick-thin {
+  border: 0;
+  border-top: var(--rule-thick);
+  border-bottom: var(--hairline);
+  height: 4px;
+  margin: 0;
+}
+hr.hairline {
+  border: 0;
+  border-top: var(--hairline);
+  margin: 0;
+}
+
+/* ---------- Panels: solid paper laid on the grain ---------- */
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  padding: 20px;
+}
+.panel--ruled { border-width: 1px; }
+
+/* ---------- Buttons: the one modern affordance, framed in ink ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 26px;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: max(19px, var(--text-size));
+  text-decoration: none;
+  border: 2px solid var(--ink);
+  /* flat printed offset — hard edge, never blur */
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+}
+.btn:hover  { background: var(--accent); transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+
+.btn--quiet {
+  background: var(--panel);
+}
+
+/* ---------- Stamps: rubber-stamp badges, ink only ---------- */
+.stamp {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 3px double var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  background: transparent;
+}
+.stamp--today     { color: var(--accent); border-color: var(--accent); }
+.stamp--cancelled { transform: rotate(-8deg); }
+
+/* ---------- Skip link (keyboard users go straight to news) ---------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  padding: 12px 20px;
+  z-index: 10;
+}
+.skip-link:focus { left: 12px; }
+
+/* ---------- Utility ---------- */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Print: the paper, printed ---------- */
+@media print {
+  body { background: #fff; font-size: 12pt; }
+  .no-print, nav.paper-nav, .reader-controls, .weather-ear, .btn { display: none !important; }
+  .panel { border-color: #000; }
+  a { text-decoration: none; color: #000; }
+  .datebook a.btn { display: none; }
+}

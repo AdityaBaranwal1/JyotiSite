@@ -1,0 +1,339 @@
+/* ============================================================
+   Jeevan Jyoti — components.css
+   Masthead, nav, weather ear, datebook, strips, boxes.
+   ============================================================ */
+
+/* ---------- Top bar: edition line + reader controls ---------- */
+.edition-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: var(--hairline);
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+}
+.edition-bar .edition-meta { font-style: italic; }
+
+/* Reader text-size control: A / A+ / A++ */
+.reader-controls { display: inline-flex; gap: 6px; align-items: center; }
+.reader-controls button {
+  min-width: 48px;
+  min-height: 48px;
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  font-weight: 700;
+  cursor: pointer;
+}
+.reader-controls button[aria-pressed="true"] {
+  background: var(--accent);
+}
+.reader-controls .rc-a   { font-size: 17px; }
+.reader-controls .rc-ap  { font-size: 20px; }
+.reader-controls .rc-app { font-size: 24px; }
+
+/* ---------- Masthead ---------- */
+.masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  padding: 22px 0 14px;
+}
+.nameplate { text-align: center; grid-column: 1; }
+.nameplate .deva {
+  font-family: var(--font-deva);
+  font-size: calc(var(--text-size) * 1.15);
+  letter-spacing: 0.25em;
+  display: block;
+  margin-bottom: 2px;
+}
+.nameplate .name {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(44px, 8vw, 84px);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+.nameplate .flourish { margin: 6px auto 4px; width: min(360px, 70%); }
+.nameplate .tagline {
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Compact nameplate for inner pages */
+.masthead--compact { padding: 14px 0 8px; }
+.masthead--compact .nameplate .name { font-size: clamp(30px, 5vw, 52px); }
+.masthead--compact .nameplate .deva { font-size: var(--text-size); }
+.masthead--compact .nameplate .flourish { width: min(220px, 55%); }
+
+/* Button that looks like a link (print action etc.) */
+.linklike {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  min-height: 48px;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  font-weight: inherit;
+  cursor: pointer;
+}
+.linklike:hover { background: var(--accent); }
+
+/* Dateline bar under the nameplate */
+.dateline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 28px;
+  padding: 10px 0;
+  border-top: var(--rule-thick);
+  border-bottom: var(--hairline);
+  font-size: max(17px, calc(var(--text-size) * 0.9));
+  text-align: center;
+}
+.dateline strong { font-weight: 700; }
+
+/* ---------- Weather ear (masthead corner box) ---------- */
+.weather-ear {
+  grid-column: 2;
+  justify-self: end;
+  border: 1px solid var(--ink);
+  padding: 10px 14px;
+  max-width: 240px;
+  background: var(--panel);
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  line-height: 1.35;
+}
+.weather-ear .we-label {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: var(--hairline);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.weather-ear .we-now { display: flex; align-items: center; gap: 10px; }
+.weather-ear .we-temp { font-family: var(--font-head); font-weight: 700; font-size: calc(var(--text-size) * 1.6); }
+.weather-ear .we-glyph svg { width: 34px; height: 34px; }
+.weather-ear[hidden] { display: none; }
+
+/* ---------- Navigation: four big underlined links ---------- */
+nav.paper-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  border-top: var(--hairline);
+  border-bottom: var(--rule-thick);
+  padding: 6px 0;
+  margin-bottom: 28px;
+}
+nav.paper-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 4px 18px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: max(19px, var(--text-size));
+  text-decoration: none;
+}
+nav.paper-nav a:hover { background: var(--accent); }
+nav.paper-nav a[aria-current="page"] {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 10" preserveAspectRatio="none"><path d="M2 7 Q 18 2 36 6 T 70 5 T 118 6" fill="none" stroke="%231F2D50" stroke-width="2.6" stroke-linecap="round"/></svg>');
+  background-repeat: no-repeat;
+  background-position: bottom 4px center;
+  background-size: 90% 9px;
+}
+
+/* ---------- Section headers (THIS WEEK, THE BACK PAGE…) ---------- */
+.section-head { margin: 34px 0 18px; }
+.section-head .kicker { display: block; margin-bottom: 6px; }
+.section-head h2 {
+  font-size: calc(var(--text-size) * 2);
+  margin-bottom: 10px;
+}
+
+/* ---------- The Datebook (weekly schedule) ---------- */
+.datebook { max-width: 860px; }
+
+.day-section { margin: 26px 0 0; }
+.day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  border-top: var(--rule-thick);
+  border-bottom: var(--hairline);
+  padding: 6px 2px 7px;
+}
+.day-head .day-name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(18px, calc(var(--text-size) * 1.05));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.day-head .stamp { margin-left: auto; }
+
+.listing {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 6px 18px;
+  align-items: center;
+  padding: 18px 2px;
+  border-bottom: var(--hairline);
+}
+.listing .l-icon svg { width: 56px; height: 56px; }
+.listing .l-main { min-width: 0; }
+.listing .l-title {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: calc(var(--text-size) * 1.25);
+  line-height: 1.25;
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.listing .l-time {
+  font-weight: 700;
+  font-size: max(18px, var(--text-size));
+  letter-spacing: 0.02em;
+}
+.listing .l-desc {
+  font-size: max(17px, calc(var(--text-size) * 0.95));
+  margin-top: 2px;
+}
+.listing .l-action { justify-self: end; }
+
+/* Cancelled listing: stays on the page, stamped like a correction */
+.listing.is-cancelled .l-title,
+.listing.is-cancelled .l-time,
+.listing.is-cancelled .l-desc { text-decoration: line-through; text-decoration-thickness: 2px; }
+.listing.is-cancelled .l-action { display: none; }
+.listing .cancel-stamp {
+  position: absolute;
+  right: 18%;
+  top: 50%;
+  transform: translateY(-50%) rotate(-8deg);
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .listing { grid-template-columns: 48px 1fr; }
+  .listing .l-icon svg { width: 44px; height: 44px; }
+  .listing .l-action { grid-column: 1 / -1; justify-self: stretch; }
+  .listing .l-action .btn { width: 100%; }
+  .masthead { grid-template-columns: 1fr; }
+  .weather-ear { grid-column: 1; justify-self: center; max-width: none; width: 100%; }
+}
+
+/* Correction notice (stale data / errors) */
+.notice {
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  padding: 14px 18px;
+  margin: 14px 0;
+  max-width: var(--measure);
+}
+.notice .kicker { display: block; margin-bottom: 4px; }
+
+/* ---------- Editor's note ---------- */
+.editors-note { max-width: var(--measure); margin-top: 14px; }
+.editors-note .signoff {
+  font-family: var(--font-head);
+  font-style: italic;
+  font-size: calc(var(--text-size) * 1.1);
+  margin-top: 12px;
+}
+
+/* ---------- Phone strip ---------- */
+.phone-strip {
+  margin: 40px 0 8px;
+  border-top: var(--rule-thick);
+  border-bottom: var(--rule-thick);
+  padding: 22px 12px;
+  text-align: center;
+  background: var(--panel);
+}
+.phone-strip .kicker { display: block; margin-bottom: 8px; }
+.phone-strip a.phone {
+  display: inline-block;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(26px, 5vw, 40px);
+  padding: 6px 14px;
+  text-decoration-thickness: 3px;
+}
+
+/* ---------- Boxes shared by Back Page & front ---------- */
+.ruled-box {
+  border: 1px solid var(--ink);
+  background: var(--panel);
+  padding: 18px 20px;
+}
+.ruled-box .box-head {
+  border-bottom: var(--rule-thick);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Forecast table rows */
+.forecast-row {
+  display: grid;
+  grid-template-columns: auto 44px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: var(--hairline);
+  font-size: max(17px, calc(var(--text-size) * 0.95));
+}
+.forecast-row:last-child { border-bottom: 0; }
+.forecast-row .f-day { font-weight: 700; min-width: 7.5ch; }
+.forecast-row svg { width: 36px; height: 36px; }
+.forecast-row .f-temp { font-weight: 700; white-space: nowrap; }
+
+/* ---------- Photograph placeholder figure ---------- */
+figure.photo {
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  padding: 10px;
+  max-width: 460px;
+}
+figure.photo figcaption {
+  font-style: italic;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
+  padding-top: 8px;
+  border-top: var(--hairline);
+  margin-top: 10px;
+}
+
+/* ---------- Footer ---------- */
+footer.colophon {
+  margin-top: 48px;
+  border-top: var(--rule-thick);
+  padding: 20px 0 8px;
+  text-align: center;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
+}
+footer.colophon .made-by {
+  font-family: var(--font-head);
+  font-style: italic;
+  font-size: calc(var(--text-size) * 1.05);
+}
+footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }

@@ -1,0 +1,80 @@
+{
+  "weekLabel": "Week of June 8–14, 2026",
+  "volume": "Vol. 2 · No. 23",
+  "updated": "Monday, June 8",
+  "editorsNote": "Welcome back, friends. June brings two new programs to our little paper — a computer help class on Tuesdays, and our Basic Finance series continues Friday afternoons. As always, every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together. We are so glad you are here.",
+  "events": [
+    {
+      "title": "Yoga & Guided Meditation",
+      "description": "Gentle chair yoga and breathing with Smita ji. No experience needed.",
+      "category": "yoga",
+      "date": "2026-06-08",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "zoomLink": "https://zoom.us/j/0000000001"
+    },
+    {
+      "title": "Computer & Phone Helpful Hints",
+      "description": "Bring your questions! This week: sending photos to family on WhatsApp.",
+      "category": "computer",
+      "date": "2026-06-09",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "https://zoom.us/j/0000000002",
+      "isNew": true
+    },
+    {
+      "title": "Art — Watercolor Painting",
+      "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone.",
+      "category": "art",
+      "date": "2026-06-10",
+      "startTime": "11:00",
+      "endTime": "12:30",
+      "zoomLink": "https://zoom.us/j/0000000003"
+    },
+    {
+      "title": "Understanding the Stock Market",
+      "description": "Dr. B. Aurora continues the series — what the fundamentals of a company mean.",
+      "category": "stock market",
+      "date": "2026-06-11",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "https://zoom.us/j/0000000004"
+    },
+    {
+      "title": "Bhajan & Music Hour",
+      "description": "Sing along or just listen — old favorites together over the phone.",
+      "category": "music",
+      "date": "2026-06-12",
+      "startTime": "11:00",
+      "endTime": "12:00"
+    },
+    {
+      "title": "Basic Finance",
+      "description": "Shri Shonkar Manava discusses Social Security benefits and senior discounts.",
+      "category": "finance",
+      "date": "2026-06-12",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "https://zoom.us/j/0000000005"
+    },
+    {
+      "title": "Depression in Older Adults",
+      "description": "Talk with Dr. Raghutworthy — rescheduled to next week’s edition.",
+      "category": "health",
+      "date": "2026-06-13",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "cancelled": true
+    },
+    {
+      "title": "Chai & Chat — Sunday Social",
+      "description": "No agenda, just neighbors. Bring your own chai.",
+      "category": "social",
+      "date": "2026-06-14",
+      "startTime": "16:00",
+      "endTime": "17:00",
+      "zoomLink": "https://zoom.us/j/0000000006"
+    }
+  ]
+}
