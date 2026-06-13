@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Theme Studio — Jeevan Jyoti, The Community Paper</title>
+  <meta name="description" content="Adjust the paper's fonts, size, and colors — safely. Every choice is checked for readability.">
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/paper.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/theme-studio.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the editor</a>
+
+  <div class="sheet">
+    <div class="edition-bar">
+      <span class="edition-meta">Editor's desk · for the volunteers</span>
+      <div class="reader-controls" role="group" aria-label="Text size">
+        <button type="button" class="rc-a" data-scale="0" aria-pressed="true" aria-label="Normal text size">A</button>
+        <button type="button" class="rc-ap" data-scale="1" aria-pressed="false" aria-label="Larger text size">A+</button>
+        <button type="button" class="rc-app" data-scale="2" aria-pressed="false" aria-label="Largest text size">A++</button>
+      </div>
+    </div>
+
+    <header class="masthead masthead--compact">
+      <div class="nameplate">
+        <span class="deva" lang="hi">जीवन ज्योति</span>
+        <h1 class="name">Jeevan Jyoti</h1>
+        <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span class="tagline">Theme Studio</span>
+      </div>
+    </header>
+
+    <nav class="paper-nav" aria-label="Main">
+      <a href="index.html">Front Page</a>
+      <a href="about.html">About Us</a>
+      <a href="contact.html">Contact</a>
+      <a href="back-page.html">The Back Page</a>
+    </nav>
+
+    <main id="main">
+      <div class="section-head">
+        <span class="kicker">Editor's Desk</span>
+        <h2>Theme Studio</h2>
+        <hr class="thick-thin">
+        <p class="byline">Adjust the paper's look without touching code. Every option here is
+          checked for readability first — you cannot accidentally make the paper hard to read.</p>
+      </div>
+
+      <div id="studio" class="studio">
+        <form class="studio-controls" aria-label="Theme settings" onsubmit="return false">
+          <div class="control">
+            <label for="font-head">Headline font</label>
+            <select id="font-head" data-font-head></select>
+          </div>
+          <div class="control">
+            <label for="font-body">Body font</label>
+            <select id="font-body" data-font-body></select>
+          </div>
+          <div class="control">
+            <label for="size">Reading size — <span class="size-readout" data-size-readout>19px</span></label>
+            <input id="size" type="range" data-size aria-describedby="size-help">
+            <p id="size-help" class="byline">Held between 17 and 24 pixels — never smaller than comfortable.</p>
+          </div>
+
+          <div class="control">
+            <label for="c-ink">Ink colour</label>
+            <div class="color-row">
+              <input id="c-ink" type="color" data-color="ink" aria-label="Ink colour">
+              <span class="swatch-val" data-color-val="ink"></span>
+            </div>
+          </div>
+          <div class="control">
+            <label for="c-paper">Paper colour</label>
+            <div class="color-row">
+              <input id="c-paper" type="color" data-color="paper" aria-label="Paper colour">
+              <span class="swatch-val" data-color-val="paper"></span>
+            </div>
+          </div>
+          <div class="control">
+            <label for="c-panel">Panel colour</label>
+            <div class="color-row">
+              <input id="c-panel" type="color" data-color="panel" aria-label="Panel colour">
+              <span class="swatch-val" data-color-val="panel"></span>
+            </div>
+          </div>
+          <div class="control">
+            <label for="c-accent">Accent colour</label>
+            <div class="color-row">
+              <input id="c-accent" type="color" data-color="accent" aria-label="Accent colour">
+              <span class="swatch-val" data-color-val="accent"></span>
+            </div>
+          </div>
+
+          <p class="studio-msg" data-studio-msg role="status" aria-live="polite"></p>
+
+          <div class="studio-actions">
+            <button type="button" class="btn" data-action-preview>Use on this device</button>
+            <button type="button" class="btn btn--quiet" data-action-export>Export theme</button>
+            <button type="button" class="btn btn--quiet" data-action-reset>Reset to original</button>
+          </div>
+          <p class="game-status" data-flash role="status" aria-live="polite"></p>
+          <pre class="export-out" data-export aria-label="Theme to copy"></pre>
+        </form>
+
+        <div class="proof-wrap">
+          <div class="proof" data-proof>
+            <p class="proof-label">Live proof — how readers will see it</p>
+            <div class="nameplate" style="text-align:left">
+              <span class="deva" lang="hi">जीवन ज्योति</span>
+              <span class="name" style="font-size:40px;display:block">Jeevan Jyoti</span>
+            </div>
+            <hr class="thick-thin" style="margin:12px 0">
+            <div class="day-head">
+              <span class="day-name">Monday · June 8</span>
+              <span class="stamp stamp--today">Today</span>
+            </div>
+            <article class="listing" style="grid-template-columns:56px 1fr auto">
+              <div class="l-icon">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 40 Q 16 52 32 53 Q 48 52 50 40 Q 41 43 32 43 Q 23 43 14 40 Z"/>
+                  <path d="M32 36 Q 26 30 29 23 Q 31 19 32 16 Q 33 19 35 23 Q 38 30 32 36 Z"/>
+                </svg>
+              </div>
+              <div class="l-main">
+                <h3 class="l-title">Yoga &amp; Guided Meditation</h3>
+                <p class="l-time">10:00 AM – 11:00 AM</p>
+                <p class="l-desc">Gentle chair yoga with Smita ji. No experience needed.</p>
+              </div>
+              <div class="l-action"><span class="btn">Join on Zoom</span></div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="colophon">
+      <p class="made-by">Set with care by the volunteers of Jeevan Jyoti.</p>
+      <div class="foot-links">
+        <a href="index.html">Front Page</a>
+        <a href="back-page.html">The Back Page</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

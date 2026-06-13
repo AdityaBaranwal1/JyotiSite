@@ -12,15 +12,21 @@ export function entryFor(data, d = new Date()) {
   return data[dateKey(d)] ?? null;
 }
 
+const MONTHS = ["January","February","March","April","May","June",
+                "July","August","September","October","November","December"];
+
 export async function initAlmanac(el, { fetchImpl, now } = {}) {
   const doFetch = fetchImpl || (typeof fetch !== "undefined" ? fetch : null);
+  const today = now || new Date();
   try {
     const res = await doFetch("data/almanac.json");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = entryFor(await res.json(), now || new Date());
+    const text = entryFor(await res.json(), today);
     if (!text) throw new Error("no entry");
     const slot = el.querySelector("[data-almanac-text]") || el;
     slot.textContent = text;
+    const dateSlot = el.querySelector("[data-almanac-date]");
+    if (dateSlot) dateSlot.textContent = `${MONTHS[today.getMonth()]} ${today.getDate()}`;
     el.hidden = false;
   } catch {
     el.hidden = true; // fails closed — a broken almanac never affects the page

@@ -67,6 +67,24 @@ function suggestShade(fg, bg, required) {
   return towardDark ? "#000000" : "#FFFFFF";
 }
 
+/* Darken/lighten the ink until it clears EVERY constraint it participates in
+   (>=7:1 on paper and panel, >=4.5:1 on the accent), so one click fixes ink. */
+function suggestInk(t) {
+  const bgLumMax = Math.max(luminance(hexToRgb(t.paper)), luminance(hexToRgb(t.panel)));
+  const towardDark = bgLumMax > 0.18;
+  let rgb = hexToRgb(t.ink) || [0, 0, 0];
+  const passes = (hex) =>
+    contrastRatio(hex, t.paper) >= 7 &&
+    contrastRatio(hex, t.panel) >= 7 &&
+    contrastRatio(hex, t.accent) >= 4.5;
+  for (let i = 0; i < 40; i++) {
+    const hex = "#" + rgb.map((c) => c.toString(16).padStart(2, "0")).join("").toUpperCase();
+    if (passes(hex)) return hex;
+    rgb = rgb.map((c) => (towardDark ? Math.max(0, c - 12) : Math.min(255, c + 12)));
+  }
+  return towardDark ? "#000000" : "#FFFFFF";
+}
+
 /* Contrast requirements:
    ink on paper + ink on panel: 7:1 (AAA body text)
    ink on accent: 4.5:1 (AAA large/bold — button labels are >=19px bold) */
@@ -85,10 +103,14 @@ export function validateTheme(theme) {
     }
     const ratio = contrastRatio(c.fg, c.bg);
     if (ratio < c.required) {
+      // ink fails paper/panel -> fix the ink globally; ink fails ONLY accent
+      // (ink is fine on paper/panel) -> the accent is too close, adjust accent.
+      const inkOkOnPaperPanel =
+        contrastRatio(t.ink, t.paper) >= 7 && contrastRatio(t.ink, t.panel) >= 7;
       const suggestion =
-        c.pair === "ink/accent"
-          ? suggestShade(c.bg, c.fg, c.required) // fix the accent, keep the ink
-          : suggestShade(c.fg, c.bg, c.required);
+        c.pair === "ink/accent" && inkOkOnPaperPanel
+          ? suggestShade(c.bg, c.fg, c.required) // adjust the accent, keep the ink
+          : suggestInk(t);                       // fix the ink for all its pairs
       problems.push({
         pair: c.pair,
         ratio: Math.round(ratio * 100) / 100,

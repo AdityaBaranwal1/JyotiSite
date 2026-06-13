@@ -53,6 +53,17 @@ test("validateTheme: ink on accent must reach 4.5:1 (large/bold buttons)", () =>
   assert.ok(contrastRatio(DEFAULT_THEME.ink, prob.suggestion) >= 4.5);
 });
 
+test("validateTheme: a light-ink suggestion passes paper, panel, AND accent at once", () => {
+  const bad = { ...DEFAULT_THEME, ink: "#CCCCCC" };
+  const r = validateTheme(bad);
+  assert.equal(r.ok, false);
+  const prob = r.problems.find((p) => p.pair === "ink/paper");
+  assert.ok(prob, "expected an ink/paper problem");
+  const fixed = { ...bad, ink: prob.suggestion };
+  // applying the single suggested ink must clear EVERY problem in one click
+  assert.equal(validateTheme(fixed).ok, true, "one fix should resolve all ink pairs");
+});
+
 test("clampSize: enforces the 17-24px floor and ceiling", () => {
   assert.equal(clampSize(12), SIZE_RANGE[0]);
   assert.equal(clampSize(99), SIZE_RANGE[1]);

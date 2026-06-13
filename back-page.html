@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Back Page — Jeevan Jyoti, The Community Paper</title>
+  <meta name="description" content="Puzzles, the almanac, and the weather — the back page of the Jeevan Jyoti community paper.">
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/paper.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the puzzles</a>
+
+  <div class="sheet">
+    <div class="edition-bar">
+      <span class="edition-meta">Rockland County, N.Y.</span>
+      <div class="reader-controls" role="group" aria-label="Text size">
+        <button type="button" class="rc-a" data-scale="0" aria-pressed="true" aria-label="Normal text size">A</button>
+        <button type="button" class="rc-ap" data-scale="1" aria-pressed="false" aria-label="Larger text size">A+</button>
+        <button type="button" class="rc-app" data-scale="2" aria-pressed="false" aria-label="Largest text size">A++</button>
+      </div>
+    </div>
+
+    <header class="masthead masthead--compact">
+      <div class="nameplate">
+        <span class="deva" lang="hi">जीवन ज्योति</span>
+        <h1 class="name">Jeevan Jyoti</h1>
+        <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span class="tagline">The Back Page</span>
+      </div>
+    </header>
+
+    <nav class="paper-nav" aria-label="Main">
+      <a href="index.html">Front Page</a>
+      <a href="about.html">About Us</a>
+      <a href="contact.html">Contact</a>
+      <a href="back-page.html" aria-current="page">The Back Page</a>
+    </nav>
+
+    <main id="main">
+      <div class="section-head">
+        <span class="kicker">For a Quiet Afternoon</span>
+        <h2>The Back Page</h2>
+        <hr class="thick-thin">
+        <p class="byline">Puzzles, the almanac, and the weather — to be done with a cup of tea
+          and no hurry whatsoever.</p>
+      </div>
+
+      <!-- Almanac -->
+      <section class="feature" aria-labelledby="almanac-h">
+        <div class="section-head">
+          <span class="kicker">The Almanac</span>
+          <h2 id="almanac-h">On This Day</h2>
+          <hr class="thick-thin">
+        </div>
+        <div id="almanac-box" class="almanac" hidden>
+          <p class="almanac-date" data-almanac-date>Today</p>
+          <p data-almanac-text></p>
+        </div>
+      </section>
+
+      <!-- Sudoku -->
+      <section class="feature" aria-labelledby="sudoku-h">
+        <div class="section-head">
+          <span class="kicker">Pencil &amp; Patience</span>
+          <h2 id="sudoku-h">Sudoku</h2>
+          <hr class="thick-thin">
+          <p class="byline">Tap a square, then tap a number. Every row, column, and box holds
+            1 to 9, just once each.</p>
+        </div>
+        <div id="sudoku" class="sudoku-wrap feature-body">
+          <div class="game-toolbar">
+            <label for="sk-level" class="visually-hidden">Difficulty</label>
+            <select id="sk-level" data-sudoku-level class="select-inline">
+              <option value="gentle">Gentle</option>
+              <option value="easy">Easy</option>
+              <option value="regular">Regular</option>
+            </select>
+            <button type="button" class="btn btn--quiet" data-sudoku-new>New puzzle</button>
+            <button type="button" class="btn btn--quiet" data-sudoku-check>Check my work</button>
+            <button type="button" class="btn btn--quiet" data-sudoku-pencil aria-pressed="false">Pencil marks</button>
+          </div>
+          <div class="sk-board" data-sudoku-board role="grid" aria-label="Sudoku board"></div>
+          <div class="sk-pad" data-sudoku-pad role="group" aria-label="Number pad"></div>
+          <p class="game-status" data-sudoku-status role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <!-- Crossword -->
+      <section class="feature" aria-labelledby="cw-h">
+        <div class="section-head">
+          <span class="kicker">Monday's Crossword <span data-cw-title></span></span>
+          <h2 id="cw-h">The Crossword</h2>
+          <hr class="thick-thin">
+          <p class="byline">Tap a square to read its clue, then spell the answer with the
+            letters below. Stuck? “Reveal” is always there — no shame in it.</p>
+        </div>
+        <div id="crossword" class="crossword-wrap feature-body" hidden>
+          <p class="cw-clue" data-cw-clue role="status" aria-live="polite"></p>
+          <div class="cw-board" data-cw-board role="grid" aria-label="Crossword grid" tabindex="0"></div>
+          <div class="cw-pad" data-cw-pad role="group" aria-label="Letter pad"></div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--quiet" data-cw-check>Check</button>
+            <button type="button" class="btn btn--quiet" data-cw-reveal-letter>Reveal letter</button>
+            <button type="button" class="btn btn--quiet" data-cw-reveal-word>Reveal word</button>
+            <button type="button" class="btn btn--quiet" data-cw-clear>Clear all</button>
+          </div>
+          <p class="game-status" data-cw-status role="status" aria-live="polite"></p>
+          <div class="cw-clues">
+            <div>
+              <h3>Across</h3>
+              <ul data-cw-across></ul>
+            </div>
+            <div>
+              <h3>Down</h3>
+              <ul data-cw-down></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Weather -->
+      <section class="feature" aria-labelledby="weather-h">
+        <div class="section-head">
+          <span class="kicker">From the Weather Bureau</span>
+          <h2 id="weather-h">The Forecast</h2>
+          <hr class="thick-thin">
+          <p class="byline">For New City and all of Rockland County, by the National Weather Service.</p>
+        </div>
+        <div id="forecast-box" class="feature-body" hidden>
+          <div data-forecast-rows></div>
+        </div>
+      </section>
+
+      <section class="phone-strip" aria-label="Telephone registration">
+        <span class="kicker">Questions? We are a phone call away</span>
+        <a class="phone" href="tel:8457092216">(845) 709-2216</a>
+      </section>
+    </main>
+
+    <footer class="colophon">
+      <p class="made-by">Set with care by the volunteers of Jeevan Jyoti.</p>
+      <div class="foot-links">
+        <a href="index.html">Front Page</a>
+        <button type="button" class="linklike" onclick="window.print()">Print this page</button>
+        <a href="theme-editor.html">Theme Studio</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -87,4 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (forecast) initForecastBox(forecast);
   const almanac = document.getElementById("almanac-box");
   if (almanac) initAlmanac(almanac);
+
+  // Games are loaded on demand so the front page stays light.
+  const sudoku = document.getElementById("sudoku");
+  if (sudoku) import("./sudoku.js").then((m) => m.mountSudoku(sudoku));
+  const crossword = document.getElementById("crossword");
+  if (crossword) import("./crossword.js").then((m) => m.initCrossword(crossword));
 });
