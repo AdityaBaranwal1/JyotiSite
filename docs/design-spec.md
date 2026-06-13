@@ -26,10 +26,16 @@ White-on-accent (≈2.2:1) is forbidden.
 
 - **Masthead:** hand-lettered nameplate with जीवन ज्योति worked in (English with Hindi accents).
 - **Headlines:** Lora (sturdy newspaper serif — not Playfair; hairline strokes vanish for old eyes).
-- **Body:** Atkinson Hyperlegible (designed by the Braille Institute for low-vision readers),
-  19px default, line-height 1.6, **never below 17px anywhere, including captions**.
-- Newspaper devices: all-caps small-spaced **kickers**, the **dateline**, **drop caps** on lead
-  text, **thick-over-thin section rules**, small-caps bylines.
+- **Running prose: Lora serif, justified on comfortable measures** (left-aligned on phones, where
+  justification opens rivers), 19px, line-height 1.6 — the single biggest "newspaper" tell. The
+  editor's note sets as a **two-column leader** with a hairline column rule on wide screens; the
+  About intro flows in auto-collapsing columns.
+- **Functional furniture stays sans** (Atkinson Hyperlegible — Braille Institute, low-vision):
+  buttons, nav labels, kickers, event times, statuses. This serif-prose / sans-label interplay is
+  classic newspaper, and keeps the functional bits maximally legible. **Never below 17px anywhere.**
+- Newspaper devices: all-caps letter-spaced **folio/dateline**, **kickers**, **drop caps** on lead
+  text, **thick-over-thin section rules**, italic-serif **standfirsts**, and hairline **sheet edges**
+  on wide screens so the column reads as a trimmed broadsheet.
 
 ## Texture
 

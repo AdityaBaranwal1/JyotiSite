@@ -12,9 +12,13 @@
   gap: 8px;
   padding: 8px 0;
   border-bottom: var(--hairline);
-  font-size: max(17px, calc(var(--text-size) * 0.85));
+  font-size: max(17px, calc(var(--text-size) * 0.82));
 }
-.edition-bar .edition-meta { font-style: italic; }
+.edition-bar .edition-meta {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 
 /* Reader text-size control: A / A+ / A++ */
 .reader-controls { display: inline-flex; gap: 6px; align-items: center; }
@@ -90,14 +94,24 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 28px;
-  padding: 10px 0;
+  align-items: center;
+  gap: 6px 22px;
+  padding: 9px 0;
   border-top: var(--rule-thick);
   border-bottom: var(--hairline);
-  font-size: max(17px, calc(var(--text-size) * 0.9));
+  font-family: var(--font-body);
+  font-size: max(16px, calc(var(--text-size) * 0.8));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   text-align: center;
 }
 .dateline strong { font-weight: 700; }
+.dateline > * + *::before {
+  content: "✦";
+  margin-right: 16px;
+  opacity: 0.5;
+  font-size: 0.8em;
+}
 
 /* ---------- Weather ear (masthead corner box) ---------- */
 .weather-ear {
@@ -250,13 +264,22 @@ nav.paper-nav a[aria-current="page"] {
 }
 .notice .kicker { display: block; margin-bottom: 4px; }
 
-/* ---------- Editor's note ---------- */
-.editors-note { max-width: var(--measure); margin-top: 14px; }
+/* ---------- Editor's note — set like a leader column ---------- */
+.editors-note { max-width: 760px; margin-top: 14px; }
+.editors-note #editors-note-text { max-width: none; }
+@media (min-width: 720px) {
+  .editors-note #editors-note-text {
+    column-count: 2;
+    column-gap: 34px;
+    column-rule: var(--hairline);
+  }
+}
 .editors-note .signoff {
   font-family: var(--font-head);
   font-style: italic;
   font-size: calc(var(--text-size) * 1.1);
   margin-top: 12px;
+  max-width: none;
 }
 
 /* ---------- Phone strip ---------- */
