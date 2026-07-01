@@ -33,15 +33,36 @@ test("normalizeEvent: coerces cancelled/isNew flags and strips non-http zoom lin
   assert.equal(e.zoomLink, null);
 });
 
+test("normalizeSchedule: zoomLink 'default' resolves to the payload's defaultZoomLink", () => {
+  const s = normalizeSchedule({
+    defaultZoomLink: "https://zoom.us/j/999",
+    events: [
+      { ...valid, zoomLink: "default" },
+      { ...valid, title: "Explicit", zoomLink: "https://zoom.us/j/111" },
+      { ...valid, title: "Phone only", zoomLink: null },
+    ],
+  });
+  assert.equal(s.events[0].zoomLink, "https://zoom.us/j/999");
+  assert.equal(s.events[1].zoomLink, "https://zoom.us/j/111");
+  assert.equal(s.events[2].zoomLink, null);
+  assert.equal(s.defaultZoomLink, "https://zoom.us/j/999");
+});
+
+test("normalizeSchedule: zoomLink 'default' with no default set falls back to phone", () => {
+  const s = normalizeSchedule({ events: [{ ...valid, zoomLink: "default" }] });
+  assert.equal(s.events[0].zoomLink, null);
+});
+
+test("normalizeSchedule: carries savedAt through for the Updated line", () => {
+  const s = normalizeSchedule({ savedAt: "2026-06-13T09:00:00.000Z", events: [valid] });
+  assert.equal(s.savedAt, "2026-06-13T09:00:00.000Z");
+});
+
 test("normalizeSchedule: keeps meta, drops invalid rows silently", () => {
   const s = normalizeSchedule({
-    weekLabel: "Week of June 8–14, 2026",
-    volume: "Vol. 2 · No. 23",
-    updated: "Monday, June 8",
     editorsNote: "Welcome back, friends.",
     events: [valid, { title: "broken" }, null],
   });
-  assert.equal(s.weekLabel, "Week of June 8–14, 2026");
   assert.equal(s.events.length, 1);
   assert.equal(s.editorsNote, "Welcome back, friends.");
 });

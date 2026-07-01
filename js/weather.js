@@ -44,12 +44,13 @@ export async function initWeatherEar(el) {
   if (!s) { el.hidden = true; return; } // fails closed, never an error box
 
   el.innerHTML = `
-    <div class="we-label"><span>Weather</span><span>Rockland Co., N.Y.</span></div>
+    <div class="we-label">Weather</div>
     <div class="we-now">
       <span class="we-glyph">${glyphSvg(s.now)}</span>
       <span class="we-temp">${s.now.temperature}°${s.now.temperatureUnit}</span>
     </div>
-    <div class="we-phrase"></div>`;
+    <div class="we-phrase"></div>
+    <div class="we-place">Rockland Co., N.Y.</div>`;
   el.querySelector(".we-phrase").textContent = s.now.shortForecast;
   el.hidden = false;
 }

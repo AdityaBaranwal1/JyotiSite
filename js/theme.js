@@ -116,7 +116,7 @@ export function validateTheme(theme) {
         ratio: Math.round(ratio * 100) / 100,
         required: c.required,
         suggestion,
-        message: `Contrast is ${ratio.toFixed(2)}:1 — needs at least ${c.required}:1. Try ${suggestion}.`,
+        message: `Contrast is ${ratio.toFixed(2)}:1; needs at least ${c.required}:1. Try ${suggestion}.`,
       });
     }
   }

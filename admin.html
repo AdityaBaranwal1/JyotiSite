@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Editor's Desk · Jeevan Jyoti</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/paper.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script type="module" src="js/admin.js"></script>
+</head>
+<body>
+  <div class="sheet">
+    <div class="edition-bar">
+      <span class="edition-meta">The Editor's Desk · Volunteers only</span>
+      <button type="button" class="btn btn--quiet" id="signout" hidden>Sign out</button>
+    </div>
+
+    <header class="masthead masthead--compact">
+      <div class="nameplate">
+        <span class="deva" lang="hi">जीवन ज्योति</span>
+        <h1 class="name">Jeevan Jyoti</h1>
+        <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span class="tagline">The Editor's Desk</span>
+      </div>
+    </header>
+
+    <!-- ================= SIGN IN ================= -->
+    <main id="login-view" class="login-view" hidden>
+      <div class="section-head">
+        <span class="kicker">Volunteers</span>
+        <h2>Sign In</h2>
+        <hr class="thick-thin">
+        <p class="byline">This desk is for the volunteers who keep the schedule. Readers can
+          simply head to <a href="index.html">the front page</a>.</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <label for="login-user">Username</label>
+        <input id="login-user" name="username" autocomplete="username" required>
+        <label for="login-pass">Password</label>
+        <input id="login-pass" name="password" type="password" autocomplete="current-password" required>
+        <p class="studio-msg" id="login-msg" role="alert"></p>
+        <button type="submit" class="btn">Sign in</button>
+      </form>
+    </main>
+
+    <!-- ================= THE DESK ================= -->
+    <main id="desk-view" hidden>
+      <div class="section-head">
+        <span class="kicker">The Schedule</span>
+        <h2 id="desk-title">This Week</h2>
+        <hr class="thick-thin">
+        <p class="byline">Click any program to change it, or add a new one. Nothing readers see
+          changes until you press <strong>Publish</strong>.</p>
+      </div>
+
+      <div class="desk-toolbar">
+        <div class="view-toggle" role="group" aria-label="View">
+          <button type="button" class="btn btn--quiet" id="view-week" aria-pressed="true">Week</button>
+          <button type="button" class="btn btn--quiet" id="view-month" aria-pressed="false">Month</button>
+        </div>
+        <div class="range-nav">
+          <button type="button" class="btn btn--quiet" id="range-prev" aria-label="Earlier">‹ Earlier</button>
+          <button type="button" class="btn btn--quiet" id="range-today">Today</button>
+          <button type="button" class="btn btn--quiet" id="range-next" aria-label="Later">Later ›</button>
+          <label class="visually-hidden" for="range-jump">Jump to month</label>
+          <input type="month" id="range-jump" aria-label="Jump to a month">
+        </div>
+      </div>
+
+      <div id="week-panel"></div>
+      <div id="month-panel" hidden></div>
+
+      <!-- Settings -->
+      <section class="feature" aria-labelledby="settings-h">
+        <div class="section-head">
+          <span class="kicker">The Usual Zoom Room</span>
+          <h2 id="settings-h">Settings</h2>
+          <hr class="thick-thin">
+        </div>
+        <div class="settings-grid">
+          <div>
+            <label for="default-zoom">Default Zoom link (programs marked “usual room” use this)</label>
+            <input id="default-zoom" type="url" placeholder="https://zoom.us/j/...">
+            <p class="byline">Change it once here and every program that uses the usual room
+              follows along.</p>
+          </div>
+          <div>
+            <label for="editors-note">From the Editor (the note and shout-outs on the front page)</label>
+            <textarea id="editors-note" rows="6"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Publish bar -->
+      <div class="publish-bar">
+        <button type="button" class="btn" id="publish">Publish changes</button>
+        <span class="game-status" id="publish-status" role="status" aria-live="polite"></span>
+      </div>
+    </main>
+
+    <!-- ================= DAY EDITOR (from the month outlook) ================= -->
+    <dialog id="day-dialog" class="event-dialog">
+      <h2 id="day-dialog-title">Programs</h2>
+      <hr class="thick-thin">
+      <div id="day-dialog-list"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="day-add">+ Add a program this day</button>
+        <button type="button" class="btn btn--quiet" id="day-close">Close</button>
+      </div>
+    </dialog>
+
+    <!-- ================= EVENT EDITOR ================= -->
+    <dialog id="event-dialog" class="event-dialog">
+      <form method="dialog" id="event-form">
+        <h2 id="event-dialog-title">Edit program</h2>
+        <hr class="thick-thin">
+        <div class="field-grid">
+          <div class="field span2">
+            <label for="ev-title">Program name</label>
+            <input id="ev-title" required maxlength="120">
+          </div>
+          <div class="field">
+            <label for="ev-date">Date</label>
+            <input id="ev-date" type="date" required>
+          </div>
+          <div class="field">
+            <label for="ev-category">Kind of program</label>
+            <select id="ev-category">
+              <option value="yoga">Yoga / exercise</option>
+              <option value="art">Art</option>
+              <option value="music">Music</option>
+              <option value="computer">Computer / phone help</option>
+              <option value="finance">Money matters</option>
+              <option value="health">Health</option>
+              <option value="talk">Talk / discussion</option>
+              <option value="social">Social hour</option>
+              <option value="">Something else</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ev-start">Starts</label>
+            <input id="ev-start" type="time" required>
+          </div>
+          <div class="field">
+            <label for="ev-end">Ends (optional)</label>
+            <input id="ev-end" type="time">
+          </div>
+          <div class="field span2">
+            <label for="ev-desc">One friendly line about it (optional)</label>
+            <input id="ev-desc" maxlength="200">
+          </div>
+          <fieldset class="field span2">
+            <legend>How do people join?</legend>
+            <label class="radio-row"><input type="radio" name="ev-zoom" value="default" checked>
+              The usual Zoom room</label>
+            <label class="radio-row"><input type="radio" name="ev-zoom" value="custom">
+              A special Zoom link:</label>
+            <input id="ev-zoom-url" type="url" placeholder="https://zoom.us/j/..." aria-label="Special Zoom link">
+            <label class="radio-row"><input type="radio" name="ev-zoom" value="phone">
+              No Zoom, they call us to register</label>
+          </fieldset>
+          <div class="field span2 check-row">
+            <label><input type="checkbox" id="ev-new"> Stamp it NEW</label>
+            <label><input type="checkbox" id="ev-cancelled"> Cancelled (stays listed, clearly stamped)</label>
+          </div>
+        </div>
+        <p class="studio-msg" id="event-msg" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn" id="ev-save">Save program</button>
+          <button type="button" class="btn btn--quiet" id="ev-cancel">Never mind</button>
+          <button type="button" class="btn btn--quiet btn--danger" id="ev-delete" hidden>Remove program</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+</body>
+</html>

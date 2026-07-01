@@ -168,7 +168,7 @@ export function mountCrossword(root, puzzle) {
 
   function checkDone() {
     const done = model.cells.every((c) => c.isBlack || entry[c.index] === c.solution);
-    if (done) status.textContent = "🎉 Finished — every letter correct!";
+    if (done) status.textContent = "🎉 Finished! Every letter correct.";
   }
 
   // Build the on-screen big-key letter pad (no tiny phone keyboard needed)
@@ -218,8 +218,8 @@ export function mountCrossword(root, puzzle) {
       if (!entry[c.index]) blank++;
       else if (entry[c.index] !== c.solution) wrong++;
     });
-    if (wrong) status.textContent = `${wrong} letter${wrong === 1 ? "" : "s"} need another look — no harm done, try again.`;
-    else if (blank) status.textContent = `So far so good — ${blank} square${blank === 1 ? "" : "s"} still empty.`;
+    if (wrong) status.textContent = `${wrong} letter${wrong === 1 ? "" : "s"} need another look. No harm done, try again.`;
+    else if (blank) status.textContent = `So far so good: ${blank} square${blank === 1 ? "" : "s"} still empty.`;
     else status.textContent = "🎉 All correct!";
   });
   root.querySelector("[data-cw-reveal-letter]")?.addEventListener("click", () => {

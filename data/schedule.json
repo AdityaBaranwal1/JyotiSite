@@ -1,8 +1,7 @@
 {
-  "weekLabel": "Week of June 8–14, 2026",
-  "volume": "Vol. 2 · No. 23",
-  "updated": "Monday, June 8",
-  "editorsNote": "Welcome back, friends. June brings two new programs to our little paper — a computer help class on Tuesdays, and our Basic Finance series continues Friday afternoons. As always, every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together. We are so glad you are here.",
+  "savedAt": "2026-06-13T09:00:00",
+  "defaultZoomLink": "https://zoom.us/j/0000000001",
+  "editorsNote": "Welcome back, friends. June brings two new programs to our little paper: a computer help class on Tuesdays, and our Basic Finance series continues Friday afternoons. As always, every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together. We are so glad you are here.",
   "events": [
     {
       "title": "Yoga & Guided Meditation",
@@ -11,7 +10,7 @@
       "date": "2026-06-08",
       "startTime": "10:00",
       "endTime": "11:00",
-      "zoomLink": "https://zoom.us/j/0000000001"
+      "zoomLink": "default"
     },
     {
       "title": "Computer & Phone Helpful Hints",
@@ -20,21 +19,21 @@
       "date": "2026-06-09",
       "startTime": "15:00",
       "endTime": "16:00",
-      "zoomLink": "https://zoom.us/j/0000000002",
+      "zoomLink": "default",
       "isNew": true
     },
     {
-      "title": "Art — Watercolor Painting",
+      "title": "Art: Watercolor Painting",
       "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone.",
       "category": "art",
       "date": "2026-06-10",
       "startTime": "11:00",
       "endTime": "12:30",
-      "zoomLink": "https://zoom.us/j/0000000003"
+      "zoomLink": "default"
     },
     {
       "title": "Understanding the Stock Market",
-      "description": "Dr. B. Aurora continues the series — what the fundamentals of a company mean.",
+      "description": "Dr. B. Aurora continues the series: what the fundamentals of a company mean.",
       "category": "stock market",
       "date": "2026-06-11",
       "startTime": "15:00",
@@ -43,7 +42,7 @@
     },
     {
       "title": "Bhajan & Music Hour",
-      "description": "Sing along or just listen — old favorites together over the phone.",
+      "description": "Sing along or just listen: old favorites together over the phone.",
       "category": "music",
       "date": "2026-06-12",
       "startTime": "11:00",
@@ -56,11 +55,11 @@
       "date": "2026-06-12",
       "startTime": "15:00",
       "endTime": "16:00",
-      "zoomLink": "https://zoom.us/j/0000000005"
+      "zoomLink": "default"
     },
     {
       "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy — rescheduled to next week’s edition.",
+      "description": "Talk with Dr. Raghutworthy: rescheduled to next week's edition.",
       "category": "health",
       "date": "2026-06-13",
       "startTime": "15:00",
@@ -68,13 +67,130 @@
       "cancelled": true
     },
     {
-      "title": "Chai & Chat — Sunday Social",
+      "title": "Chai & Chat: Sunday Social",
       "description": "No agenda, just neighbors. Bring your own chai.",
       "category": "social",
       "date": "2026-06-14",
       "startTime": "16:00",
       "endTime": "17:00",
-      "zoomLink": "https://zoom.us/j/0000000006"
+      "zoomLink": "default"
+    },
+    {
+      "title": "Yoga & Guided Meditation",
+      "description": "Gentle chair yoga and breathing with Smita ji. No experience needed.",
+      "category": "yoga",
+      "date": "2026-06-15",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Computer & Phone Helpful Hints",
+      "description": "Bring your questions! Next up: video calls with the grandchildren.",
+      "category": "computer",
+      "date": "2026-06-16",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Depression in Older Adults",
+      "description": "Talk with Dr. Raghutworthy, warmly rescheduled from last week.",
+      "category": "health",
+      "date": "2026-06-20",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "International Yoga Day Special",
+      "description": "A longer session for Yoga Day, with tea and talk after.",
+      "category": "yoga",
+      "date": "2026-06-21",
+      "startTime": "10:00",
+      "endTime": "11:30",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Yoga & Guided Meditation",
+      "description": "Gentle chair yoga and breathing with Smita ji.",
+      "category": "yoga",
+      "date": "2026-07-06",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Art: Summer Skies",
+      "description": "Watercolors return with Mrs. Kapoor.",
+      "category": "art",
+      "date": "2026-07-08",
+      "startTime": "11:00",
+      "endTime": "12:30",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Yoga & Guided Meditation",
+      "description": "Gentle chair yoga and breathing with Smita ji. No experience needed.",
+      "category": "yoga",
+      "date": "2026-06-29",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Computer & Phone Helpful Hints",
+      "description": "Bring your questions! This week: bigger text on your phone.",
+      "category": "computer",
+      "date": "2026-06-30",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Art: Summer Skies in Watercolor",
+      "description": "A new series begins with Mrs. Kapoor. Supplies list by phone.",
+      "category": "art",
+      "date": "2026-07-01",
+      "startTime": "11:00",
+      "endTime": "12:30",
+      "zoomLink": "default",
+      "isNew": true
+    },
+    {
+      "title": "Understanding the Stock Market",
+      "description": "Dr. B. Aurora on reading the business pages without worry.",
+      "category": "stock market",
+      "date": "2026-07-02",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Bhajan & Music Hour",
+      "description": "Sing along or just listen: old favorites together over the phone.",
+      "category": "music",
+      "date": "2026-07-03",
+      "startTime": "11:00",
+      "endTime": "12:00"
+    },
+    {
+      "title": "Independence Day Social",
+      "description": "Lemonade on Zoom before the fireworks. All welcome.",
+      "category": "social",
+      "date": "2026-07-04",
+      "startTime": "16:00",
+      "endTime": "17:00",
+      "zoomLink": "default"
+    },
+    {
+      "title": "Chai & Chat: Sunday Social",
+      "description": "No agenda, just neighbors. Bring your own chai.",
+      "category": "social",
+      "date": "2026-07-05",
+      "startTime": "16:00",
+      "endTime": "17:00",
+      "zoomLink": "default"
     }
   ]
 }

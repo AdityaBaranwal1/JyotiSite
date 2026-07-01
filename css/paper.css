@@ -9,7 +9,9 @@
   --ink:    #1F2D50;  /* text, rules, borders, grids */
   --paper:  #F6F1E5;  /* page background (carries grain) */
   --panel:  #FDFBF4;  /* cards, boxes — solid, never textured */
-  --accent: #E8940A;  /* actions only */
+  --accent: #E8940A;  /* the paper's second ink: actions, spot-color rules */
+  /* soft wash of the second ink for tint bands (text on it stays --ink) */
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--paper));
 
   /* -- Type -- */
   --font-head: "Lora", Georgia, "Times New Roman", serif;
@@ -38,9 +40,12 @@ button, input, select { font: inherit; color: inherit; }
 /* ---------- The paper ---------- */
 body {
   background-color: var(--paper);
-  /* Grain baked into the page background only — panels cover it, text never
-     sits on visible texture. ~5% alpha fractal noise. */
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer></filter><rect width="240" height="240" filter="url(%23g)"/></svg>');
+  /* Texture: a halftone dot screen (like newsprint under a loupe) over a
+     faint grain. Ink dots at ~6% — perceivable, never in the way of text.
+     Solid panels still cover it; text never sits on strong texture. */
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><g fill="%231F2D50" opacity="0.062"><circle cx="4" cy="4" r="1.35"/><circle cx="12" cy="12" r="1.35"/></g></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer></filter><rect width="240" height="240" filter="url(%23g)"/></svg>');
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--text-size);
@@ -139,20 +144,26 @@ a:hover { background: var(--accent); text-decoration-thickness: 3px; }
   max-width: 60ch;
 }
 
-/* Drop cap for lead paragraphs */
+/* Drop cap for lead paragraphs — an initial on a marigold tint block,
+   the classic two-ink newspaper flourish (ink on accent passes AAA-large) */
 .dropcap::first-letter {
   font-family: var(--font-head);
   font-weight: 700;
-  font-size: 3.1em;
-  line-height: 0.85;
+  font-size: 2.9em;
+  line-height: 1;
   float: left;
-  padding: 0.04em 0.12em 0 0;
+  background: var(--accent);
+  color: var(--ink);
+  padding: 0.06em 0.14em;
+  margin: 0.05em 0.16em 0 0;
 }
 
-/* ---------- Rules: the only depth this paper has ---------- */
+/* ---------- Rules: the only depth this paper has ----------
+   Two-ink printing: the thick bar runs in the second ink (marigold),
+   the thin line in the first (indigo) — like a spot-color broadsheet. */
 hr.thick-thin {
   border: 0;
-  border-top: var(--rule-thick);
+  border-top: 3px solid var(--accent);
   border-bottom: var(--hairline);
   height: 4px;
   margin: 0;
@@ -196,7 +207,7 @@ hr.hairline {
   background: var(--panel);
 }
 
-/* ---------- Stamps: rubber-stamp badges, ink only ---------- */
+/* ---------- Stamps: rubber-stamp badges ---------- */
 .stamp {
   display: inline-block;
   padding: 4px 12px;
@@ -206,6 +217,7 @@ hr.hairline {
   font-size: max(17px, calc(var(--text-size) * 0.85));
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  line-height: 1.2;
   transform: rotate(-4deg);
   background: transparent;
 }

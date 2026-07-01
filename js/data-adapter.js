@@ -18,7 +18,7 @@ const CACHE_KEY = "jyoti-schedule-cache";
 const truthy = (v) =>
   v === true || v === 1 || /^(true|yes|y|1|cancelled)$/i.test(String(v ?? "").trim());
 
-export function normalizeEvent(raw) {
+export function normalizeEvent(raw, defaultZoomLink = null) {
   if (!raw || typeof raw !== "object") return null;
   const title = String(raw.title ?? "").trim();
   const date = String(raw.date ?? "").trim();
@@ -27,7 +27,10 @@ export function normalizeEvent(raw) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   if (!/^\d{1,2}:\d{2}$/.test(startTime)) return null;
 
+  // "default" points at the schedule-wide default Zoom room, so the link can
+  // change once (in the admin) and every event follows it.
   let zoomLink = String(raw.zoomLink ?? "").trim();
+  if (zoomLink === "default") zoomLink = defaultZoomLink ?? "";
   if (!/^https?:\/\//i.test(zoomLink)) zoomLink = null;
 
   return {
@@ -48,13 +51,14 @@ export function normalizeEvent(raw) {
 
 export function normalizeSchedule(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
+  let defaultZoomLink = String(r.defaultZoomLink ?? "").trim();
+  if (!/^https?:\/\//i.test(defaultZoomLink)) defaultZoomLink = null;
   const events = Array.isArray(r.events)
-    ? r.events.map(normalizeEvent).filter(Boolean)
+    ? r.events.map((e) => normalizeEvent(e, defaultZoomLink)).filter(Boolean)
     : [];
   return {
-    weekLabel: String(r.weekLabel ?? "").trim(),
-    volume: String(r.volume ?? "").trim(),
-    updated: String(r.updated ?? "").trim(),
+    defaultZoomLink,
+    savedAt: String(r.savedAt ?? "").trim(),
     editorsNote: String(r.editorsNote ?? "").trim(),
     events,
   };

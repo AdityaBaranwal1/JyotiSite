@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Full Month — Jeevan Jyoti, The Community Paper</title>
+  <title>Full Month · Jeevan Jyoti, The Community Paper</title>
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,20 +45,28 @@
 
     <main id="main">
       <div class="section-head">
-        <span class="kicker">The Datebook</span>
-        <h2>The Month Ahead</h2>
+        <span class="kicker">The Listings</span>
+        <h2 id="month-title">This Month</h2>
         <hr class="thick-thin">
-        <p class="byline">Every published week appears below, newest first as new editions
-          arrive. <a href="index.html">Back to this week →</a></p>
+        <p class="byline">The month at a glance, week by week. For today's details and Zoom
+          buttons, see <a href="index.html">the front page</a>.</p>
+      </div>
+
+      <div class="month-nav">
+        <button type="button" class="btn btn--quiet" id="month-prev">‹ Previous month</button>
+        <button type="button" class="btn btn--quiet" id="month-next">Next month ›</button>
       </div>
 
       <div id="notice-slot"></div>
-      <div id="datebook" class="datebook" aria-live="polite">
+      <div id="datebook" data-view="month" aria-live="polite">
         <div class="notice">
           <span class="kicker">One moment</span>
           <p>Fetching the schedule…</p>
         </div>
       </div>
+      <p class="byline" id="cal-hint" hidden>Days with a marigold circle have programs. Tap one
+        to read the details below.</p>
+      <div id="day-programs" class="datebook day-detail" aria-live="polite"></div>
 
       <section class="phone-strip" aria-label="Telephone registration">
         <span class="kicker">Pre-register for any class by telephone</span>

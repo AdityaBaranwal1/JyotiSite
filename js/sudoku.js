@@ -160,7 +160,7 @@ export function mountSudoku(root) {
     given = puzzle.map((n) => n !== 0);
     notes = Array.from({ length: 81 }, () => new Set());
     selected = -1;
-    status.textContent = "New puzzle — tap a square, then tap a number.";
+    status.textContent = "New puzzle. Tap a square, then tap a number.";
     draw();
   }
 
@@ -226,8 +226,8 @@ export function mountSudoku(root) {
   root.querySelector("[data-sudoku-check]")?.addEventListener("click", () => {
     const conflicts = findConflicts(grid);
     const empties = grid.filter((n) => n === 0).length;
-    if (conflicts.size) status.textContent = "A few numbers clash — the squares in orange repeat in a row, column, or box.";
-    else if (empties) status.textContent = `Looking good so far — ${empties} square${empties === 1 ? "" : "s"} to go.`;
+    if (conflicts.size) status.textContent = "A few numbers clash: the squares in orange repeat in a row, column, or box.";
+    else if (empties) status.textContent = `Looking good so far: ${empties} square${empties === 1 ? "" : "s"} to go.`;
     else status.textContent = "🎉 All correct!";
     draw();
   });

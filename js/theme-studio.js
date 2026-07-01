@@ -135,7 +135,7 @@ export function initStudio(root) {
     }
     saveTheme(theme);
     applyTheme(theme); // takes effect across the site immediately, this device
-    flash("Saved on this device — every page now uses this theme.");
+    flash("Saved on this device. Every page now uses this theme.");
   });
 
   $("[data-action-reset]", root).addEventListener("click", () => {

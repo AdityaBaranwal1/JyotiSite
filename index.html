@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jeevan Jyoti — The Community Paper · This Week's Programs</title>
+  <title>Jeevan Jyoti · The Community Paper · This Week's Programs</title>
   <meta name="description" content="The weekly program schedule of Jeevan Jyoti, a senior community in Rockland County, New York. Free classes on Zoom and by phone.">
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
 
   <div class="sheet">
     <div class="edition-bar">
-      <span class="edition-meta">Rockland County, N.Y. — free to all neighbors</span>
+      <span class="edition-meta">Rockland County, N.Y. · Free to all neighbors</span>
       <div class="reader-controls" role="group" aria-label="Text size">
         <button type="button" class="rc-a" data-scale="0" aria-pressed="true" aria-label="Normal text size">A</button>
         <button type="button" class="rc-ap" data-scale="1" aria-pressed="false" aria-label="Larger text size">A+</button>
@@ -41,8 +41,7 @@
 
     <div class="dateline">
       <strong id="week-label">This Week</strong>
-      <span id="volume">Vol. 2 · No. 23</span>
-      <span>Updated <span id="updated">recently</span></span>
+      <span id="updated-line">Updated recently</span>
     </div>
 
     <nav class="paper-nav" aria-label="Main">
@@ -57,8 +56,15 @@
         <span class="kicker">The Datebook</span>
         <h2>This Week</h2>
         <hr class="thick-thin">
-        <p class="byline">Every program is free. Join by Zoom with one button, or telephone us —
+        <p class="byline">Every program is free. Join by Zoom with one button, or telephone us and
           we will happily get you connected. <a href="month.html">View the full month →</a></p>
+        <!-- TEMPORARY: schedule style picker while we choose a look; remove before launch -->
+        <div class="variant-picker" role="group" aria-label="Schedule style (temporary)">
+          <span>Style:</span>
+          <button type="button" data-variant="column" aria-pressed="true">1 · Column</button>
+          <button type="button" data-variant="ledger" aria-pressed="false">2 · Ledger</button>
+          <button type="button" data-variant="panel" aria-pressed="false">3 · Panels</button>
+        </div>
       </div>
 
       <div id="notice-slot"></div>
@@ -75,9 +81,9 @@
           <hr class="thick-thin">
         </div>
         <p class="dropcap" id="editors-note-text">Welcome, friends. Our weekly schedule appears
-          above — and if anything here is unclear, the telephone numbers below always reach a
+          above. If anything here is unclear, the telephone numbers below always reach a
           real neighbor.</p>
-        <p class="signoff">— Your friends at Jeevan Jyoti</p>
+        <p class="signoff">With warmth, your friends at Jeevan Jyoti</p>
       </section>
 
       <section class="phone-strip" aria-label="Telephone registration">
@@ -88,8 +94,8 @@
     </main>
 
     <footer class="colophon">
-      <p class="made-by">Set with care by the volunteers of Jeevan Jyoti —
-        <span lang="hi">जीवन ज्योति</span>, “the light of life.”</p>
+      <p class="made-by">Set with care by the volunteers of Jeevan Jyoti
+        (<span lang="hi">जीवन ज्योति</span>, “the light of life”).</p>
       <p>In partnership with the Rockland County Office for the Aging.</p>
       <div class="foot-links">
         <a href="back-page.html">Puzzles &amp; Almanac</a>

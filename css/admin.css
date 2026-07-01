@@ -1,0 +1,209 @@
+/* admin.css — the Editor's Desk. Same ink-and-paper language as the site,
+   with big friendly controls for volunteer editors. */
+
+/* ---------- shared form controls ---------- */
+#desk-view label, #login-view label, .event-dialog label, .event-dialog legend {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 700;
+  margin: 14px 0 6px;
+}
+#desk-view input, #desk-view textarea, #login-view input,
+.event-dialog input:not([type="radio"]):not([type="checkbox"]),
+.event-dialog select {
+  width: 100%;
+  min-height: 48px;
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  padding: 8px 12px;
+  font-size: max(18px, var(--text-size));
+  font-family: var(--font-body);
+}
+#desk-view textarea { line-height: 1.5; }
+
+/* ---------- login ---------- */
+.login-view .login-form { max-width: 420px; }
+.login-view .btn { margin-top: 18px; }
+
+/* ---------- desk toolbar ---------- */
+.desk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+.view-toggle, .range-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.view-toggle .btn[aria-pressed="true"] { background: var(--accent); }
+.range-nav input[type="month"] {
+  min-height: 48px;
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  padding: 0 10px;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
+  font-family: var(--font-body);
+}
+
+/* ---------- week panel: a day-by-day ledger ---------- */
+.desk-day { margin-top: 20px; }
+.desk-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 3px solid var(--accent);
+  border-bottom: var(--hairline);
+  padding: 8px 2px;
+}
+.desk-day-head .day-name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: max(17px, var(--text-size));
+}
+.desk-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  width: 100%;
+  text-align: left;
+  border-bottom: var(--hairline);
+  padding: 12px 2px;
+  font-size: max(18px, var(--text-size));
+}
+.desk-event .de-what { font-family: var(--font-head); flex: 1 1 auto; }
+.desk-event .de-what strong { font-weight: 600; }
+.desk-event .de-badges { font-family: var(--font-body); font-weight: 700; white-space: nowrap; }
+.desk-event .de-edit { margin-left: auto; min-height: 48px; }
+.desk-event.is-cancelled .de-what { text-decoration: line-through; text-decoration-thickness: 2px; }
+.desk-empty { padding: 12px 2px; font-style: italic; border-bottom: var(--hairline); }
+.desk-add {
+  margin: 10px 0 2px;
+}
+
+/* ---------- month panel: the calendar ---------- */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 3px solid var(--accent);
+  border-left: var(--hairline);
+  margin-top: 14px;
+}
+.cal-dow {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: max(15px, calc(var(--text-size) * 0.75));
+  text-align: center;
+  padding: 8px 4px;
+  border-right: var(--hairline);
+  border-bottom: var(--hairline);
+}
+.cal-cell {
+  min-height: 96px;
+  border-right: var(--hairline);
+  border-bottom: var(--hairline);
+  background: transparent;
+  padding: 6px;
+  text-align: left;
+  vertical-align: top;
+  cursor: pointer;
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+.cal-cell:hover { background: var(--accent-soft); }
+.cal-cell:disabled { cursor: default; background: transparent; opacity: 0.35; }
+.cal-cell .cal-date {
+  font-weight: 700;
+  font-size: max(16px, calc(var(--text-size) * 0.85));
+  width: 36px; height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  align-self: flex-start;
+}
+.cal-cell.has-events .cal-date { background: var(--accent); }
+.cal-cell.is-today .cal-date { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cal-cell .cal-ev {
+  font-size: max(14px, calc(var(--text-size) * 0.72));
+  line-height: 1.25;
+  font-family: var(--font-head);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-cell .cal-ev.is-cancelled { text-decoration: line-through; }
+.cal-cell .cal-more { font-size: max(14px, calc(var(--text-size) * 0.72)); font-weight: 700; }
+@media (max-width: 720px) {
+  .cal-cell { min-height: 64px; }
+  .cal-cell .cal-ev, .cal-cell .cal-more { display: none; }
+  .cal-cell .cal-dots { font-size: 10px; letter-spacing: 2px; color: var(--accent); overflow: hidden; }
+}
+
+/* ---------- settings + publish ---------- */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px 40px;
+  max-width: 980px;
+}
+@media (min-width: 880px) { .settings-grid { grid-template-columns: 1fr 1fr; } }
+
+.publish-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 34px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border-top: 3px solid var(--accent);
+}
+.publish-bar .game-status { margin: 0; }
+#publish:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+
+/* ---------- event dialog ---------- */
+.event-dialog {
+  border: 3px solid var(--ink);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 26px 28px;
+  max-width: 640px;
+  width: calc(100vw - 40px);
+}
+.event-dialog::backdrop { background: rgba(31, 45, 80, 0.45); }
+.event-dialog h2 { margin-bottom: 8px; }
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 22px;
+}
+.field-grid .span2 { grid-column: 1 / -1; }
+.event-dialog fieldset { border: var(--hairline); padding: 10px 14px 14px; margin: 16px 0 0; }
+.event-dialog .radio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+  margin: 10px 0 4px;
+  min-height: 32px;
+}
+.event-dialog input[type="radio"], .event-dialog input[type="checkbox"] {
+  width: 26px; height: 26px;
+  accent-color: var(--accent);
+}
+.event-dialog #ev-zoom-url { margin-left: 36px; width: calc(100% - 36px); }
+.check-row { display: flex; flex-wrap: wrap; gap: 6px 30px; }
+.check-row label { display: flex; align-items: center; gap: 10px; font-weight: 400; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.btn--danger { border-color: var(--ink); }
+.btn--danger:hover { background: #d9534f; color: #fff; }
+@media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
