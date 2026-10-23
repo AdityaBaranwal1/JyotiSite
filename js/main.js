@@ -14,6 +14,7 @@ import {
 } from "./schedule.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
+import { transition, motionOK } from "./motion.js";
 
 /* ---------- Theme: apply per-device choices immediately ---------- */
 const savedTheme = loadSavedTheme();
@@ -46,11 +47,13 @@ function wireReaderControls() {
   const wrap = document.querySelector(".reader-controls");
   if (!wrap) return;
   const buttons = [...wrap.querySelectorAll("button[data-scale]")];
-  const select = (idx) => {
+  // The whole page reflows at a new size; a cross-fade turns that jump
+  // into one calm change.
+  const select = (idx) => transition(() => {
     applyScale(idx);
     saveScale(idx);
     buttons.forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
-  };
+  }, "size");
   buttons.forEach((b, i) => b.addEventListener("click", () => select(i)));
   buttons.forEach((b, i) =>
     b.setAttribute("aria-pressed", String(i === loadScale()))
@@ -85,8 +88,7 @@ async function fillSchedule() {
     const now = new Date();
     const weekSchedule =
       ok && schedule ? { ...schedule, events: filterWeek(schedule.events, now) } : null;
-    const draw = (variant) => renderSchedule(datebook, weekSchedule, { variant });
-    draw(wireVariantPicker(draw));
+    renderSchedule(datebook, weekSchedule, { variant: datebookVariant() });
   }
 
   // The dateline is computed, never typed: week label from today's date,
@@ -102,6 +104,10 @@ async function fillSchedule() {
 
   const note = document.getElementById("editors-note-text");
   if (note && schedule?.editorsNote) note.textContent = schedule.editorsNote;
+
+  // The page has its final height now; motion.js can find the rules that
+  // are still below the fold.
+  document.dispatchEvent(new Event("jj:rendered"));
 }
 
 /* A preview must never be mistaken for the paper readers are getting. */
@@ -116,27 +122,11 @@ function showPreviewBanner(ok) {
   document.body.classList.add("is-previewing");
 }
 
-/* TEMPORARY variant picker for the weekly datebook (remove before launch).
-   Returns the saved variant and wires the buttons to redraw. */
-function wireVariantPicker(draw) {
-  const KEY = "jyoti-datebook-variant";
-  let variant = "column";
-  try { variant = localStorage.getItem(KEY) || "column"; } catch { /* ignore */ }
-  const wrap = document.querySelector(".variant-picker");
-  if (wrap) {
-    const buttons = [...wrap.querySelectorAll("button[data-variant]")];
-    const select = (v) => {
-      variant = v;
-      try { localStorage.setItem(KEY, v); } catch { /* ignore */ }
-      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.variant === v)));
-      draw(v);
-    };
-    buttons.forEach((b) => {
-      b.setAttribute("aria-pressed", String(b.dataset.variant === variant));
-      b.addEventListener("click", () => select(b.dataset.variant));
-    });
-  }
-  return variant;
+/* The paper prints the "column" datebook. The other two looks stay
+   reachable for comparison at ?style=ledger and ?style=panel. */
+function datebookVariant() {
+  const asked = new URLSearchParams(location.search).get("style");
+  return ["column", "ledger", "panel"].includes(asked) ? asked : "column";
 }
 
 /* Month page: a wall-calendar grid; tap a marked day to read its programs.
@@ -180,28 +170,58 @@ function initMonthView(container, schedule) {
     return inMonth.find((d) => d >= todayIso) || inMonth[0];
   };
 
+  // The buttons name the month they lead to: "‹ September" says more than
+  // "Previous month", and stays on one line on a phone.
+  const labelNav = (btn, delta, arrowFirst) => {
+    if (!btn) return;
+    const [y, m] = shift(delta).split("-").map(Number);
+    const name = monthTitle(y, m).split(" ")[0];
+    btn.textContent = arrowFirst ? `‹ ${name}` : `${name} ›`;
+    btn.setAttribute("aria-label",
+      `${delta < 0 ? "Previous" : "Next"} month, ${monthTitle(y, m)}`);
+  };
+
+  // Choosing a day only moves the tint and re-sets the programs below; the
+  // grid itself is not redrawn, so the tint can ease across.
+  const selectDay = (iso, { reveal = false } = {}) => {
+    selected = iso;
+    for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
+      cell.classList.toggle("is-selected", cell.dataset.date === iso);
+    }
+    if (!dayPrograms) return;
+    renderDayListings(dayPrograms, events, selected);
+    // On a phone the programs are a long scroll below the day that was
+    // tapped; bring them up so the tap visibly did something.
+    if (reveal && dayPrograms.getBoundingClientRect().top > innerHeight * 0.75) {
+      dayPrograms.scrollIntoView({ behavior: motionOK() ? "smooth" : "auto", block: "start" });
+    }
+  };
+
   const draw = () => {
     if (titleEl) titleEl.textContent = monthTitle(year, month1);
     renderTimetable(container, events, {
       year, month1, selected,
-      onSelectDay: (iso) => { selected = iso; draw(); },
+      onSelectDay: (iso) => selectDay(iso, { reveal: true }),
     });
     if (hint) hint.hidden = false;
     if (dayPrograms) renderDayListings(dayPrograms, events, selected);
     // navigation stops where the data stops
     if (prev) prev.disabled = !bounds || shift(-1) < bounds.min;
     if (next) next.disabled = !bounds || shift(1) > bounds.max;
+    labelNav(prev, -1, true);
+    labelNav(next, 1, false);
     history.replaceState(null, "", `?m=${ym()}`);
   };
-  const step = (delta) => {
+  const step = (delta) => transition(() => {
     [year, month1] = shift(delta).split("-").map(Number);
     selected = pickDefaultDay();
     draw();
-  };
+  }, delta < 0 ? "month-prev" : "month-next");
   prev?.addEventListener("click", () => { if (!prev.disabled) step(-1); });
   next?.addEventListener("click", () => { if (!next.disabled) step(1); });
   selected = pickDefaultDay();
   draw();
+  container.querySelector(".timetable")?.classList.add("is-entering");
 }
 
 /* ---------- Boot ---------- */

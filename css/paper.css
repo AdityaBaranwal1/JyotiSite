@@ -28,6 +28,14 @@
   --rule-thick: 3px solid var(--ink);
   --measure: 68ch;      /* comfortable reading width */
   --page-max: 1080px;
+
+  /* -- Motion: ink settling, never bouncing. Long ease-outs that arrive
+        gently; every animation runs once and then the page holds still. -- */
+  --ease-ink:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pen:  cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-touch: 150ms;   /* hover and press feedback */
+  --dur-ink:   560ms;   /* content arriving on the page */
+  --dur-pen:   900ms;   /* a rule or flourish being drawn */
 }
 
 /* ---------- Reset (small, honest) ---------- */
@@ -36,6 +44,10 @@ html { -webkit-text-size-adjust: 100%; }
 body, h1, h2, h3, h4, p, figure, blockquote, dl, dd, ul, ol { margin: 0; }
 img, svg { display: block; max-width: 100%; }
 button, input, select { font: inherit; color: inherit; }
+/* `hidden` must always win: component rules like `.btn { display: inline-flex }`
+   would otherwise outrank the browser's own [hidden] style and show controls
+   that are meant to be off. */
+[hidden] { display: none !important; }
 
 /* ---------- The paper ---------- */
 body {
@@ -54,6 +66,9 @@ body {
 
 .sheet {
   max-width: var(--page-max);
+  /* the trimmed sheet runs the full height of the window, even on a short page */
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 0 20px 48px;
 }
@@ -75,6 +90,7 @@ h1, h2, h3, h4 {
   line-height: 1.2;
   color: var(--ink);
 }
+h1, h2, h3, h4 { text-wrap: balance; }
 h1 { font-size: calc(var(--text-size) * 2.4); }
 h2 { font-size: calc(var(--text-size) * 1.7); }
 h3 { font-size: calc(var(--text-size) * 1.3); }
@@ -86,6 +102,7 @@ p  {
   max-width: var(--measure);
   font-family: var(--font-head);
   font-weight: 400;
+  text-wrap: pretty;   /* no one-word last lines */
 }
 
 /* Justify editorial copy on comfortable measures (left-aligned on phones,
@@ -117,6 +134,7 @@ a {
   text-underline-offset: 3px;
 }
 a:hover { background: var(--accent); text-decoration-thickness: 3px; }
+a { transition: background-color var(--dur-touch) ease-out; }
 
 ::selection { background: var(--accent); color: var(--ink); }
 
@@ -200,11 +218,31 @@ hr.hairline {
   box-shadow: 3px 3px 0 var(--ink);
   cursor: pointer;
 }
+.btn {
+  transition:
+    transform var(--dur-touch) var(--ease-ink),
+    box-shadow var(--dur-touch) var(--ease-ink),
+    background-color var(--dur-touch) ease-out;
+}
+/* Hover eases the sheet a pixel toward the page; a press closes the offset
+   completely, so the button sinks flat into the paper. */
 .btn:hover  { background: var(--accent); transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
-.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.btn--quiet:hover { background: var(--accent-soft); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); transition-duration: 40ms; }
 
 .btn--quiet {
   background: var(--panel);
+}
+/* A button that can't be pressed shouldn't look pressable: no offset,
+   no hover, the ink faded back (the label still reads at AA). */
+.btn:disabled,
+.btn:disabled:hover {
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ink) 40%, transparent);
+  color: color-mix(in srgb, var(--ink) 72%, var(--paper));
 }
 
 /* ---------- Stamps: rubber-stamp badges ---------- */
@@ -247,6 +285,9 @@ hr.hairline {
 
 /* ---------- Print: the paper, printed ---------- */
 @media print {
+  /* paper does not move: every rule and listing prints in its final place */
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .sheet { min-height: 0; }
   body { background: #fff; font-size: 12pt; }
   .no-print, nav.paper-nav, .reader-controls, .weather-ear, .btn { display: none !important; }
   .panel { border-color: #000; }

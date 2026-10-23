@@ -1,0 +1,197 @@
+/* ============================================================
+   Jeevan Jyoti — motion.css
+   The paper's few movements: ink settling, a pen drawing a rule,
+   a rubber stamp landing. Flat and 2D like everything else here.
+
+   Rules of the house:
+   - Every animation runs once and then the page holds still.
+     Nothing loops, nothing moves while it is being read.
+   - Motion only adds. With Reduce Motion on, or in a browser that
+     knows none of this, the page is simply already printed.
+   - Only opacity and the individual translate/scale properties
+     move, so nothing fights a component's own transform (stamps
+     keep their tilt) and nothing reflows the page.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ---------- Turning the page ----------
+     Moving between pages, the edition bar, nameplate and nav hold their
+     place while the story below gives way to the next one — the paper
+     stays in your hands and only the page turns. Browsers without
+     cross-document view transitions simply navigate as before.
+
+     The page as a whole (root) keeps the browser's own cross-fade: its
+     blending holds anything identical on both sides at full strength, so
+     the sheet edges and grain never dim. Only <main> gets choreography. */
+  @view-transition { navigation: auto; }
+
+  .edition-bar      { view-transition-name: jj-edition; }
+  .nameplate .name  { view-transition-name: jj-name; }
+  nav.paper-nav     { view-transition-name: jj-nav; }
+  main              { view-transition-name: jj-main; }
+  .timetable        { view-transition-name: jj-month; }
+  #month-title      { view-transition-name: jj-month-title; }
+  .month-nav        { view-transition-name: jj-month-nav; }
+
+  ::view-transition-group(*) {
+    animation-duration: 380ms;
+    animation-timing-function: var(--ease-ink);
+  }
+
+  /* Between pages: the old story lifts away almost at once and the new one
+     settles a beat later, so the two are never read on top of each other. */
+  html:not([data-vt])::view-transition-old(jj-main) { animation: 110ms ease-out both jj-fade-out; }
+  html:not([data-vt])::view-transition-new(jj-main) { animation: 460ms var(--ease-ink) 90ms both jj-rise-in; }
+
+  /* The buttons' month names hand over the same way, without a slide. */
+  html[data-vt^="month"]::view-transition-old(jj-month-nav) { animation: 120ms ease-out both jj-fade-out; }
+  html[data-vt^="month"]::view-transition-new(jj-month-nav) { animation: 300ms ease-out 110ms both jj-fade-in; }
+
+  /* A new text size reflows every line, so a cross-fade would show two
+     settings of the same page at once. Dip through the paper instead. */
+  html[data-vt="size"]::view-transition-old(*) { animation: 120ms ease-out both jj-fade-out; }
+  html[data-vt="size"]::view-transition-new(*) { animation: 260ms ease-out 100ms both jj-fade-in; }
+  html[data-vt="size"]::view-transition-group(*) { animation-duration: 0s; }
+
+  /* The month, and its name, slide the way the reader asked to go. The
+     old leaves fast and the new arrives a beat later, so the two never sit
+     legibly on top of each other. */
+  html[data-vt="month-next"]::view-transition-old(jj-month),
+  html[data-vt="month-next"]::view-transition-old(jj-month-title) { animation: 150ms var(--ease-pen) both jj-out-left; }
+  html[data-vt="month-next"]::view-transition-new(jj-month),
+  html[data-vt="month-next"]::view-transition-new(jj-month-title) { animation: 420ms var(--ease-ink) 120ms both jj-in-right; }
+  html[data-vt="month-prev"]::view-transition-old(jj-month),
+  html[data-vt="month-prev"]::view-transition-old(jj-month-title) { animation: 150ms var(--ease-pen) both jj-out-right; }
+  html[data-vt="month-prev"]::view-transition-new(jj-month),
+  html[data-vt="month-prev"]::view-transition-new(jj-month-title) { animation: 420ms var(--ease-ink) 120ms both jj-in-left; }
+
+  /* ---------- The press run (first page of a visit only) ----------
+     The nameplate inks in, the pen draws the marigold flourish under it,
+     and the two diamonds are struck last. Later pages in the same sitting
+     open already printed (see the jj-pressed snippet in each page head). */
+  html:not(.jj-pressed) .nameplate .name {
+    animation: jj-ink-in 760ms var(--ease-ink) 60ms both;
+  }
+  html:not(.jj-pressed) .nameplate .tagline {
+    animation: jj-fade-in 700ms ease-out 520ms both;
+  }
+  html:not(.jj-pressed) .nameplate .flourish path {
+    /* pathLength="1" on the path: a one-unit dash, a two-unit gap */
+    stroke-dasharray: 1 2;
+    animation: jj-pen 1150ms var(--ease-pen) 360ms both;
+  }
+  html:not(.jj-pressed) .nameplate .flourish path + path {
+    animation-duration: 520ms;
+    animation-delay: 1180ms;
+  }
+  .nameplate .deva::before,
+  .nameplate .deva::after { display: inline-block; }
+  html:not(.jj-pressed) .nameplate .deva::before,
+  html:not(.jj-pressed) .nameplate .deva::after {
+    animation: jj-strike 620ms var(--ease-ink) 1250ms both;
+  }
+
+  /* "You are here": the wavy marigold underline is drawn out from the
+     middle of the current page's name each time a page opens. */
+  nav.paper-nav a[aria-current="page"] {
+    animation: jj-underline 720ms var(--ease-ink) 260ms both;
+  }
+
+  /* ---------- Rules drawn by a ruling pen ----------
+     Section rules below the fold wait at their start (js/motion.js marks
+     them) and are drawn left to right as the reader scrolls to them. */
+  hr.thick-thin { transform-origin: left center; }
+  hr.thick-thin.is-waiting { scale: 0 1; }
+  hr.thick-thin.is-arriving { animation: jj-rule var(--dur-pen) var(--ease-ink) both; }
+
+  /* ---------- Ink settling: content arriving on the page ---------- */
+
+  /* This week's days settle in order, Monday first. --i is set per day. */
+  .datebook .day-section {
+    animation: jj-ink-in var(--dur-ink) var(--ease-ink) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+  }
+
+  /* The rubber stamps land last, once their row has settled: a firm press
+     from just above the paper, a hair of give, and it holds its tilt. */
+  .stamp {
+    animation: jj-stamp 540ms var(--ease-ink) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 460ms);
+  }
+  /* Grow from the edge they sit against, so a stamp at the right margin
+     of a phone never pokes past the screen while it lands. */
+  .day-head .stamp,
+  .month-row .stamp { transform-origin: 100% 50%; }
+  .l-title .stamp   { transform-origin: 0 50%; }
+
+  /* The month's grid settles once when the page opens. Changing months
+     slides instead (above); choosing a day only tints its square. */
+  .timetable.is-entering { animation: jj-ink-in 520ms var(--ease-ink) both; }
+
+  /* A chosen day's programs rise into place under the grid. */
+  .day-detail > * { animation: jj-ink-in 460ms var(--ease-ink) both; }
+  .day-detail > :nth-child(2) { animation-delay: 60ms; }
+  .day-detail > :nth-child(3) { animation-delay: 120ms; }
+  .day-detail > :nth-child(n+4) { animation-delay: 180ms; }
+
+  /* Boxes that wait on the network fade in when their news arrives,
+     instead of popping into the layout. */
+  .weather-ear,
+  .almanac,
+  #forecast-box,
+  .crossword-wrap { animation: jj-ink-in var(--dur-ink) var(--ease-ink) both; }
+
+  /* ---------- Puzzles ---------- */
+  /* A number or letter goes down like a pencil mark: a touch large, then
+     settling into the square. Only the mark moves, never the square. */
+  .sk-digit, .cw-letter { display: inline-block; }
+  .sk-ink .sk-digit,
+  .cw-ink .cw-letter { animation: jj-mark 260ms var(--ease-ink) both; }
+
+  /* Solved: one marigold wash sweeps the grid corner to corner, once.
+     --d is each square's distance from the top-left corner. */
+  .sk-cell.is-wave,
+  .cw-cell.is-wave {
+    animation: jj-wash 1200ms ease-out;
+    animation-delay: calc(var(--d, 0) * 30ms);
+  }
+  .cw-cell.cw-black.is-wave { animation: none; }
+
+  /* ---------- The editor's desk ---------- */
+  dialog[open] { animation: jj-ink-in 340ms var(--ease-ink) both; }
+  dialog[open]::backdrop { animation: jj-fade-in 260ms ease-out both; }
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes jj-fade-in   { from { opacity: 0; } }
+@keyframes jj-fade-out  { to   { opacity: 0; } }
+@keyframes jj-ink-in    { from { opacity: 0; translate: 0 8px; } }
+@keyframes jj-rise-in   { from { opacity: 0; translate: 0 10px; } }
+@keyframes jj-out-left  { to   { opacity: 0; translate: -28px 0; } }
+@keyframes jj-out-right { to   { opacity: 0; translate: 28px 0; } }
+@keyframes jj-in-right  { from { opacity: 0; translate: 28px 0; } }
+@keyframes jj-in-left   { from { opacity: 0; translate: -28px 0; } }
+@keyframes jj-pen       { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes jj-rule      { from { scale: 0 1; } }
+@keyframes jj-underline { from { background-size: 0% 9px; } }
+@keyframes jj-strike {
+  from { opacity: 0; scale: 0.2; rotate: -90deg; }
+}
+@keyframes jj-stamp {
+  0%   { opacity: 0; scale: 1.5; }
+  55%  { opacity: 1; scale: 0.95; }
+  100% { opacity: 1; scale: 1; }
+}
+@keyframes jj-mark {
+  from { opacity: 0.2; scale: 1.45; }
+}
+@keyframes jj-wash {
+  0%, 100% { background-color: transparent; }
+  30%      { background-color: color-mix(in srgb, var(--accent) 45%, var(--paper)); }
+}
+
+/* Paper does not move: a rule still waiting below the fold prints whole. */
+@media print {
+  hr.thick-thin { scale: none !important; }
+}

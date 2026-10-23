@@ -5,12 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>About Us · Jeevan Jyoti, The Community Paper</title>
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <!-- The masthead is inked once per visit: later pages in the same sitting
+       open already printed. Runs before the stylesheets so nothing flickers. -->
+  <script>try{if(sessionStorage.getItem("jj-press"))document.documentElement.classList.add("jj-pressed");else sessionStorage.setItem("jj-press","1")}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paper.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/motion.css">
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/motion.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the story</a>
@@ -30,7 +35,7 @@
         <span class="deva" lang="hi">जीवन ज्योति</span>
         <h1 class="name">Jeevan Jyoti</h1>
         <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          <path pathLength="1" d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         </svg>
         <span class="tagline">About Us</span>
       </div>
@@ -63,7 +68,7 @@
           program begins the same way: with someone glad you came.</p>
       </div>
 
-      <figure class="photo">
+      <figure class="photo photo--wide">
         <img src="assets/patterns/photograph-wide.svg" alt="" width="480" height="220">
         <figcaption>Our community at a recent gathering (photograph to come).</figcaption>
       </figure>
@@ -74,15 +79,17 @@
         <hr class="thick-thin">
       </div>
 
-      <p>Jeevan Jyoti works in partnership with the <strong>Rockland County Office for the
-        Aging</strong>, whose support helps keep every class free and open to all seniors in
-        the county. We are grateful, too, to the volunteer instructors who give their time
-        each week.</p>
+      <div class="clear-after">
+        <figure class="photo photo--aside">
+          <img src="assets/patterns/photograph.svg" alt="" width="240" height="180">
+          <figcaption>Volunteers preparing the weekly schedule (photograph to come).</figcaption>
+        </figure>
 
-      <figure class="photo">
-        <img src="assets/patterns/photograph.svg" alt="" width="240" height="180">
-        <figcaption>Volunteers preparing the weekly schedule (photograph to come).</figcaption>
-      </figure>
+        <p>Jeevan Jyoti works in partnership with the <strong>Rockland County Office for the
+          Aging</strong>, whose support helps keep every class free and open to all seniors in
+          the county. We are grateful, too, to the volunteer instructors who give their time
+          each week.</p>
+      </div>
 
       <section class="phone-strip" aria-label="Telephone registration">
         <span class="kicker">Join us · Pre-register by telephone</span>

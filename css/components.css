@@ -30,6 +30,8 @@
   font-weight: 700;
   cursor: pointer;
 }
+.reader-controls button { transition: background-color var(--dur-touch) ease-out; }
+.reader-controls button:hover { background: var(--accent-soft); }
 .reader-controls button[aria-pressed="true"] {
   background: var(--accent);
 }
@@ -46,6 +48,14 @@
   padding: 22px 0 14px;
 }
 .nameplate { text-align: center; grid-column: 1; }
+/* On a full sheet the nameplate sits dead centre, on the same axis as the
+   dateline and nav, with the weather ear in its own right-hand gutter, so
+   the name never shifts when the forecast arrives. */
+@media (min-width: 1000px) {
+  .masthead { grid-template-columns: 1fr auto 1fr; }
+  .nameplate { grid-column: 2; }
+  .masthead .weather-ear { grid-column: 3; grid-row: 1; }
+}
 .nameplate .deva {
   font-family: var(--font-deva);
   font-size: calc(var(--text-size) * 1.15);
@@ -111,11 +121,12 @@
   border-top: 3px solid var(--accent);
   border-bottom: var(--hairline);
   font-family: var(--font-body);
-  font-size: max(16px, calc(var(--text-size) * 0.8));
+  font-size: max(17px, calc(var(--text-size) * 0.8));
   letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: center;
   line-height: 1.3;
+  text-wrap: balance;
 }
 .dateline strong { font-weight: 700; }
 /* separators: same 16px on both sides so the diamonds sit dead-center */
@@ -179,6 +190,7 @@ nav.paper-nav a {
   font-size: max(19px, var(--text-size));
   text-decoration: none;
 }
+nav.paper-nav a { transition: background-color var(--dur-touch) ease-out; }
 nav.paper-nav a:hover { background: var(--accent); }
 nav.paper-nav a[aria-current="page"] {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 10" preserveAspectRatio="none"><path d="M2 7 Q 18 2 36 6 T 70 5 T 118 6" fill="none" stroke="%23E8940A" stroke-width="3" stroke-linecap="round"/></svg>');
@@ -204,7 +216,7 @@ nav.paper-nav a[aria-current="page"] {
 }
 
 /* ---------- The Datebook (weekly schedule) ---------- */
-.datebook { max-width: 860px; }
+.datebook { max-width: none; }
 
 .day-section { margin: 26px 0 0; }
 .day-head {
@@ -232,7 +244,7 @@ nav.paper-nav a[aria-current="page"] {
 }
 .day-head .stamp { margin-left: auto; }
 
-/* ---------- Datebook variants (temporary picker chooses one) ----------
+/* ---------- Datebook variants (column is the paper; ?style=ledger|panel previews the others) ----------
    "column"  (default): rules & whitespace, as above.
    "ledger": a big date numeral block leads each day, like a desk diary.
    "panel":  each day contained in a solid block with a marigold top bar. */
@@ -271,8 +283,8 @@ nav.paper-nav a[aria-current="page"] {
   gap: 2px;
   text-align: center;
 }
-.datebook[data-variant="ledger"] .day-name { font-size: max(16px, calc(var(--text-size) * 0.8)); letter-spacing: 0.1em; }
-.datebook[data-variant="ledger"] .day-date { font-size: max(16px, calc(var(--text-size) * 0.85)); }
+.datebook[data-variant="ledger"] .day-name { font-size: max(17px, calc(var(--text-size) * 0.8)); letter-spacing: 0.1em; }
+.datebook[data-variant="ledger"] .day-date { font-size: max(17px, calc(var(--text-size) * 0.85)); }
 .datebook[data-variant="ledger"] .day-head .stamp { margin: 8px 0 0; }
 .datebook[data-variant="ledger"] .day-body .listing:first-child { padding-top: 4px; }
 @media (max-width: 680px) {
@@ -293,26 +305,6 @@ nav.paper-nav a[aria-current="page"] {
 .datebook[data-variant="panel"] .day-head { border-top: 0; padding-top: 12px; }
 .datebook[data-variant="panel"] .listing:last-child { border-bottom: 0; }
 
-/* the temporary style picker */
-.variant-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 12px 0 0;
-  font-size: max(16px, calc(var(--text-size) * 0.85));
-}
-.variant-picker button {
-  min-height: 44px;
-  padding: 4px 14px;
-  border: 1px solid var(--ink);
-  background: var(--panel);
-  font-family: var(--font-body);
-  font-weight: 700;
-  cursor: pointer;
-}
-.variant-picker button[aria-pressed="true"] { background: var(--accent); }
-
 /* ---------- Public month calendar ---------- */
 .cal-grid--public {
   display: grid;
@@ -327,7 +319,7 @@ nav.paper-nav a[aria-current="page"] {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-size: max(15px, calc(var(--text-size) * 0.75));
+  font-size: max(17px, calc(var(--text-size) * 0.75));
   text-align: center;
   padding: 10px 4px;
   border-right: var(--hairline);
@@ -371,7 +363,7 @@ nav.paper-nav a[aria-current="page"] {
   .cal-grid--public .cal-date { width: 38px; height: 38px; font-size: 17px; }
 }
 
-.day-detail { max-width: 860px; margin-top: 30px; }
+.day-detail { margin-top: 30px; scroll-margin-top: 16px; }
 
 .listing {
   position: relative;
@@ -434,9 +426,12 @@ nav.paper-nav a[aria-current="page"] {
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 6px;
-  max-width: 860px;
 }
-.month-list { max-width: 860px; }
+/* On a phone the two buttons share the row equally; at the largest reader
+   sizes a long month name may wrap rather than push off the screen. */
+@media (max-width: 520px) {
+  .month-nav .btn { flex: 1 1 0; min-width: 0; padding-inline: 12px; }
+}
 .month-week { margin-top: 26px; }
 .month-week-head {
   font-family: var(--font-head);
@@ -480,7 +475,7 @@ nav.paper-nav a[aria-current="page"] {
 .notice .kicker { display: block; margin-bottom: 4px; }
 
 /* ---------- Editor's note — set like a leader column ---------- */
-.editors-note { max-width: 760px; margin-top: 14px; }
+.editors-note { margin-top: 14px; }
 .editors-note #editors-note-text { max-width: none; }
 @media (min-width: 720px) {
   .editors-note #editors-note-text {
@@ -556,6 +551,21 @@ figure.photo {
   margin: 18px 0;
   max-width: 460px;
 }
+figure.photo img { width: 100%; height: auto; }
+figure.photo--wide { max-width: none; margin-top: 26px; }
+@media (min-width: 720px) {
+  /* a picture across two of the three columns, its caption set in the
+     third and standing on the photo's bottom edge, as a paper runs one */
+  figure.photo--wide {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0 34px;
+    align-items: end;
+  }
+  figure.photo--wide figcaption { border-top: var(--hairline); padding-top: 10px; margin: 0 0 6px; }
+  figure.photo--aside { float: right; width: 280px; margin: 4px 0 16px 32px; }
+  .clear-after::after { content: ""; display: block; clear: both; }
+}
 figure.photo figcaption {
   font-style: italic;
   font-size: max(17px, calc(var(--text-size) * 0.9));
@@ -576,7 +586,16 @@ footer.colophon .made-by {
   font-style: italic;
   font-size: calc(var(--text-size) * 1.05);
 }
-footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
+footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 0 22px; flex-wrap: wrap; }
+/* links and the print button share one baseline and one tap height */
+footer.colophon .foot-links > * {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 6px;
+  font-size: inherit;
+  line-height: 1.3;
+}
 
 /* ============================================================
    The Back Page — games, almanac, forecast. Grids and rules,
@@ -622,7 +641,20 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
 }
 
 /* ---------- Sudoku ---------- */
-.sudoku-wrap { max-width: 520px; }
+.sudoku-wrap { max-width: none; }
+.sk-play { max-width: 520px; }
+@media (min-width: 1000px) {
+  .sk-play {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 520px) 300px;
+    gap: 0 40px;
+    align-items: start;
+  }
+  .sk-play .sk-pad { grid-template-columns: repeat(3, 1fr); margin-top: 0; gap: 10px; }
+  .sk-play .sk-key { min-height: 76px; font-size: max(26px, calc(var(--text-size) * 1.3)); }
+  .sk-play .sk-key.sk-erase { grid-column: 1 / -1; min-height: 60px; }
+}
 .sk-board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
@@ -677,11 +709,25 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   font-size: max(22px, var(--text-size));
   cursor: pointer;
 }
+.sk-key, .cw-key, .cw-cluebtn { transition: background-color var(--dur-touch) ease-out; }
 .sk-key:hover { background: var(--accent); }
 .sk-key.sk-erase { grid-column: span 2; font-family: var(--font-body); font-size: max(18px, var(--text-size)); }
 
 /* ---------- Crossword ---------- */
-.crossword-wrap { max-width: 640px; }
+.crossword-wrap { max-width: none; }
+/* On a full sheet the clues stand beside the grid, the way a paper sets its
+   crossword, and the grid stays in view while the reader runs down them. */
+@media (min-width: 1000px) {
+  .cw-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+    gap: 0 40px;
+    align-items: start;
+  }
+  .cw-play { position: sticky; top: 16px; }
+  .cw-layout .cw-clues { grid-template-columns: 1fr; margin-top: 0; gap: 26px; }
+  .cw-layout .cw-clues h3 { margin-top: 0; }
+}
 .cw-clue {
   font-family: var(--font-head);
   font-weight: 700;
@@ -719,14 +765,18 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   position: absolute;
   top: 1px; left: 2px;
   font-family: var(--font-body);
-  font-size: clamp(7px, 1.5vw, 10px);
+  font-weight: 700;
+  /* a clue number has a third of a square to live in; the clue bar above
+     the grid always repeats it in full-size type */
+  font-size: clamp(9px, 2.3vw, 13px);
   line-height: 1;
 }
 .cw-letter {
   font-family: var(--font-head);
   font-weight: 700;
-  font-size: clamp(13px, 3vw, 22px);
+  font-size: clamp(15px, 4.2vw, 24px);
   text-transform: uppercase;
+  padding-top: 0.2em;
 }
 
 .cw-pad {
@@ -746,7 +796,7 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   cursor: pointer;
 }
 .cw-key:hover { background: var(--accent); }
-.cw-key.cw-erase { grid-column: span 2; font-family: var(--font-body); font-size: max(15px, calc(var(--text-size) * 0.85)); }
+.cw-key.cw-erase { grid-column: span 2; font-family: var(--font-body); font-size: max(17px, calc(var(--text-size) * 0.85)); }
 
 /* clue lists: two newspaper columns of plain ruled lines, no boxes */
 .cw-clues { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
@@ -775,6 +825,8 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
 @media (max-width: 620px) {
   .cw-clues { grid-template-columns: 1fr; gap: 18px; }
   .cw-pad { grid-template-columns: repeat(6, 1fr); }
+  /* every pixel of a phone's width goes to the squares */
+  .cw-board { width: calc(100% + 24px); max-width: none; margin-inline: -12px; }
 }
 
 /* ---------- Almanac box — a tinted standalone item ---------- */
@@ -782,7 +834,6 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   border-top: 3px solid var(--accent);
   background: var(--accent-soft);
   padding: 14px 18px 12px;
-  max-width: 720px;
 }
 .almanac[hidden] { display: none; }
 .almanac .almanac-date {
@@ -860,8 +911,7 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-size: 15px;
-  opacity: 0.7;
+  font-size: 17px;
   margin-bottom: 14px;
 }
 .export-out {
@@ -870,7 +920,7 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   border: 2px solid var(--ink);
   background: transparent;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 15px;
+  font-size: 17px;
   padding: 12px;
   margin-top: 14px;
   white-space: pre;
@@ -922,7 +972,10 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   border-bottom: var(--hairline);
 }
 .tt-day {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   width: 100%;
   text-align: left;
   min-height: 108px;
@@ -935,6 +988,7 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   font: inherit;
 }
 .tt-day.has-events { cursor: pointer; }
+.tt-day { transition: background-color 220ms ease-out; }
 .tt-day.has-events:hover { background: var(--accent-soft); }
 .tt-day:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
 .tt-day--pad { background: color-mix(in srgb, var(--ink) 4%, transparent); }
@@ -977,6 +1031,8 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   font-family: var(--font-body);
   font-size: max(17px, calc(var(--text-size) * 0.8));
 }
+#cal-hint { margin-top: 12px; }
+
 /* Not the usual: a new class, or a one-off that no standing rule produced. */
 .tt-entry.is-unusual {
   border-left: 3px solid var(--accent);

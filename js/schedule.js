@@ -178,10 +178,12 @@ export function renderSchedule(container, schedule, { now = new Date(), variant 
     return;
   }
 
-  for (const group of groupByDay(schedule.events)) {
+  groupByDay(schedule.events).forEach((group, i) => {
     const d = localDate(group.date);
     const section = el("section", "day-section");
     section.setAttribute("aria-label", group.label);
+    // its place in the order the days settle onto the page (css/motion.css)
+    section.style.setProperty("--i", String(Math.min(i, 8)));
 
     const head = el("div", "day-head");
     head.appendChild(el("span", "day-num", String(d.getDate())));
@@ -196,7 +198,7 @@ export function renderSchedule(container, schedule, { now = new Date(), variant 
     for (const event of group.events) body.appendChild(renderListing(event));
     section.appendChild(body);
     container.appendChild(section);
-  }
+  });
 }
 
 /* ---------- Public month calendar (grid like a wall calendar) ---------- */
@@ -254,7 +256,8 @@ export function renderDayListings(container, events, iso, { now = new Date() } =
   if (!iso) return;
   const head = el("div", "day-head");
   head.appendChild(el("span", "day-meta"));
-  head.firstChild.appendChild(el("span", "day-name", dayLabel(iso)));
+  // "October 23" stays together when the heading wraps beside its stamp
+  head.firstChild.appendChild(el("span", "day-name", dayLabel(iso).replace(/ (\d+)$/, "\u00a0$1")));
   if (isToday(iso, now)) head.appendChild(stamp("Today", "stamp--today"));
   container.appendChild(head);
   events
@@ -401,6 +404,7 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
     const d = localDate(iso);
 
     const cell = el(todays.length ? "button" : "div", "tt-day");
+    cell.dataset.date = iso;
     if (todays.length) {
       cell.type = "button";
       cell.classList.add("has-events");

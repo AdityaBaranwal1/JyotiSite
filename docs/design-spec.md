@@ -42,6 +42,27 @@ White-on-accent (≈2.2:1) is forbidden.
 SVG `feTurbulence` grain on the page background **only**, ~5% opacity, baked into the body
 background image so solid panels physically cover it. Text never sits on texture or photos.
 
+## Motion (css/motion.css)
+
+The paper moves like print, never like an app: ink settling, a ruling pen drawing a rule, a
+rubber stamp landing. Flat and 2D, like everything else — only opacity and small translate/scale
+moves, never blur, bounce, parallax or 3D.
+
+- **Once, then still.** Every animation runs once and the page holds still. Nothing loops,
+  and nothing moves while it is being read.
+- **The press run** (first page of a visit only): the nameplate inks in, the pen draws the
+  marigold flourish, the ✦ diamonds are struck. Later pages in the same sitting open printed.
+- **Turning the page**: cross-document view transitions. Edition bar, nameplate and nav hold
+  still; the story below lifts away and the next one settles. The month grid slides the way
+  the reader asked to go; a text-size change dips through the paper.
+- **Arrival**: this week's days settle in order; TODAY/NEW stamps land last; section rules are
+  drawn as they scroll into view; boxes waiting on the network fade in rather than pop.
+- **Touch**: buttons ease a pixel toward the page on hover and sink flat on press (the printed
+  offset closes). Hover tints ease in over 150ms.
+- **Optional by construction**: everything sits inside `prefers-reduced-motion: no-preference`.
+  With Reduce Motion on, or in an older browser, the page is simply already printed —
+  `tests/visual/motion.spec.js` holds it to that, and to never scrolling a phone sideways.
+
 ## Theming (validated — all options are valid)
 
 All visuals run off CSS custom properties in one `:root` block (`css/paper.css`). Two editing

@@ -624,27 +624,35 @@ function editionLabel(savedAt) {
   });
 }
 
+/* Opening the desk and finishing a restore can both ask for the list at
+   once. Each draw builds its rows off-page and swaps them in whole, and a
+   draw that a newer one has overtaken is dropped, so the list can never be
+   printed twice. */
+let editionsDraw = 0;
 async function drawEditions() {
   const host = $("#editions-list");
   if (!host) return;
+  const ticket = ++editionsDraw;
   const res = await fetch("/api/versions").catch(() => null);
-  host.textContent = "";
-  if (!res || !res.ok) {
+  const data = res && res.ok ? await res.json().catch(() => null) : null;
+  if (ticket !== editionsDraw) return;
+
+  const note = (text) => {
     const p = document.createElement("p");
     p.className = "desk-empty";
-    p.textContent = "The previous editions could not be read just now.";
-    host.appendChild(p);
+    p.textContent = text;
+    return p;
+  };
+  if (!data) {
+    host.replaceChildren(note("The previous editions could not be read just now."));
     return;
   }
-  const { editions } = await res.json();
+  const { editions } = data;
   if (!editions.length) {
-    const p = document.createElement("p");
-    p.className = "desk-empty";
-    p.textContent = "No previous editions yet — the first one is filed the next time you publish.";
-    host.appendChild(p);
+    host.replaceChildren(note("No previous editions yet — the first one is filed the next time you publish."));
     return;
   }
-  for (const e of editions) {
+  const rows = editions.map((e) => {
     const row = document.createElement("div");
     row.className = "edition-row";
     const when = document.createElement("span");
@@ -660,8 +668,9 @@ async function drawEditions() {
     restore.setAttribute("aria-label", `Put back the edition from ${when.textContent}`);
     restore.addEventListener("click", () => restoreEdition(e, when.textContent));
     row.append(when, what, restore);
-    host.appendChild(row);
-  }
+    return row;
+  });
+  host.replaceChildren(...rows);
 }
 
 async function restoreEdition(edition, label) {

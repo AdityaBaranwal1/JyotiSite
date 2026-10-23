@@ -97,7 +97,7 @@
 /* ---------- month panel: the calendar ---------- */
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-top: 3px solid var(--accent);
   border-left: var(--hairline);
   margin-top: 14px;
@@ -107,7 +107,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-size: max(15px, calc(var(--text-size) * 0.75));
+  font-size: max(17px, calc(var(--text-size) * 0.8));
   text-align: center;
   padding: 8px 4px;
   border-right: var(--hairline);
@@ -132,7 +132,7 @@
 .cal-cell:disabled { cursor: default; background: transparent; opacity: 0.35; }
 .cal-cell .cal-date {
   font-weight: 700;
-  font-size: max(16px, calc(var(--text-size) * 0.85));
+  font-size: max(17px, calc(var(--text-size) * 0.85));
   width: 36px; height: 36px;
   display: grid;
   place-items: center;
@@ -142,15 +142,14 @@
 .cal-cell.has-events .cal-date { background: var(--accent); }
 .cal-cell.is-today .cal-date { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cal-cell .cal-ev {
-  font-size: max(14px, calc(var(--text-size) * 0.72));
+  font-size: max(17px, calc(var(--text-size) * 0.72));
   line-height: 1.25;
   font-family: var(--font-head);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* a long title wraps inside its square rather than widening the week */
+  overflow-wrap: anywhere;
 }
 .cal-cell .cal-ev.is-cancelled { text-decoration: line-through; }
-.cal-cell .cal-more { font-size: max(14px, calc(var(--text-size) * 0.72)); font-weight: 700; }
+.cal-cell .cal-more { font-size: max(17px, calc(var(--text-size) * 0.72)); font-weight: 700; }
 @media (max-width: 720px) {
   .cal-cell { min-height: 64px; }
   .cal-cell .cal-ev, .cal-cell .cal-more { display: none; }
@@ -275,13 +274,13 @@
 .de-origin {
   display: block;
   font-family: var(--font-body);
-  font-size: max(15px, calc(var(--text-size) * 0.78));
+  font-size: max(17px, calc(var(--text-size) * 0.85));
   margin-top: 2px;
 }
 .de-state {
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: max(15px, calc(var(--text-size) * 0.75));
+  font-size: max(17px, calc(var(--text-size) * 0.8));
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 3px 8px;
@@ -301,7 +300,7 @@
   padding: 8px 0 8px 12px;
   margin: 0 0 16px;
   font-family: var(--font-body);
-  font-size: max(16px, calc(var(--text-size) * 0.85));
+  font-size: max(17px, calc(var(--text-size) * 0.85));
 }
 @media (max-width: 620px) {
   .standing-def { grid-template-columns: 1fr; }
@@ -310,7 +309,7 @@
   display: block;
   margin-top: 4px;
   font-family: var(--font-body);
-  font-size: max(15px, calc(var(--text-size) * 0.78));
+  font-size: max(17px, calc(var(--text-size) * 0.85));
 }
 
 /* ---------- previous editions ---------- */
@@ -327,7 +326,7 @@
 .ed-what {
   grid-column: 1;
   font-family: var(--font-body);
-  font-size: max(15px, calc(var(--text-size) * 0.8));
+  font-size: max(17px, calc(var(--text-size) * 0.8));
 }
 .ed-restore { grid-column: 2; grid-row: 1 / span 2; min-height: 48px; }
 

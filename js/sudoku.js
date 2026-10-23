@@ -147,6 +147,9 @@ export const DIFFICULTY = { gentle: 45, easy: 38, regular: 32 };
 export function mountSudoku(root) {
   let puzzle, solution, grid, given, selected = -1, pencil = false, notes = [];
   let level = "gentle";
+  // One-shot flourishes for the next draw only: the square just written in,
+  // and the wash across the board when it is solved.
+  let inked = -1, wave = false;
 
   const board = root.querySelector("[data-sudoku-board]");
   const pad = root.querySelector("[data-sudoku-pad]");
@@ -178,11 +181,19 @@ export function mountSudoku(root) {
       if (given[i]) cell.classList.add("sk-given");
       if (i === selected) cell.classList.add("sk-sel");
       if (conflicts.has(i)) cell.classList.add("sk-bad");
+      if (i === inked) cell.classList.add("sk-ink");
+      if (wave) {
+        cell.classList.add("is-wave");
+        cell.style.setProperty("--d", String(rowOf(i) + colOf(i)));
+      }
       cell.setAttribute("aria-label",
         `Row ${rowOf(i) + 1}, column ${colOf(i) + 1}` +
         (grid[i] ? `, ${grid[i]}` : ", empty"));
       if (grid[i]) {
-        cell.textContent = grid[i];
+        const digit = document.createElement("span");
+        digit.className = "sk-digit";
+        digit.textContent = grid[i];
+        cell.appendChild(digit);
       } else if (notes[i].size) {
         const n = document.createElement("span");
         n.className = "sk-notes";
@@ -192,6 +203,8 @@ export function mountSudoku(root) {
       cell.addEventListener("click", () => { selected = i; draw(); });
       board.appendChild(cell);
     }
+    inked = -1;
+    wave = false;
   }
 
   function place(v) {
@@ -202,8 +215,11 @@ export function mountSudoku(root) {
     } else {
       grid[selected] = v;
       notes[selected].clear();
-      if (isComplete(grid)) status.textContent = "🎉 Solved! Beautifully done.";
-      else status.textContent = "";
+      if (v) inked = selected;
+      if (isComplete(grid)) {
+        status.textContent = "🎉 Solved! Beautifully done.";
+        wave = true;
+      } else status.textContent = "";
     }
     draw();
   }
@@ -228,7 +244,7 @@ export function mountSudoku(root) {
     const empties = grid.filter((n) => n === 0).length;
     if (conflicts.size) status.textContent = "A few numbers clash: the squares in orange repeat in a row, column, or box.";
     else if (empties) status.textContent = `Looking good so far: ${empties} square${empties === 1 ? "" : "s"} to go.`;
-    else status.textContent = "🎉 All correct!";
+    else { status.textContent = "🎉 All correct!"; wave = true; }
     draw();
   });
   root.querySelector("[data-sudoku-pencil]")?.addEventListener("click", (e) => {

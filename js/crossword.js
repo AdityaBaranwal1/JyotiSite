@@ -77,6 +77,8 @@ export function mountCrossword(root, puzzle) {
   let direction = "across";
   let active = model.across[0] || model.down[0];
   let activeCell = active ? active.cells[0] : -1;
+  // One-shot flourishes for the next draw only (see css/motion.css).
+  let inked = -1, wave = false;
 
   const board = root.querySelector("[data-cw-board]");
   const clueBar = root.querySelector("[data-cw-clue]");
@@ -114,6 +116,7 @@ export function mountCrossword(root, puzzle) {
       btn.className = "cw-cell";
       if (activeCells.has(cell.index)) btn.classList.add("cw-inword");
       if (cell.index === activeCell) btn.classList.add("cw-active");
+      if (cell.index === inked) btn.classList.add("cw-ink");
       btn.setAttribute("aria-label",
         `Row ${cell.row + 1}, column ${cell.col + 1}` + (cell.number ? `, clue ${cell.number}` : ""));
       if (cell.number) {
@@ -128,8 +131,14 @@ export function mountCrossword(root, puzzle) {
         if (cell.index === activeCell) direction = direction === "across" ? "down" : "across";
         setActive(cell.index, direction);
       });
+      if (wave) {
+        btn.classList.add("is-wave");
+        btn.style.setProperty("--d", String(cell.row + cell.col));
+      }
       board.appendChild(btn);
     });
+    inked = -1;
+    wave = false;
 
     if (active) {
       const label = direction === "across" ? "Across" : "Down";
@@ -148,6 +157,7 @@ export function mountCrossword(root, puzzle) {
   function typeLetter(ch) {
     if (activeCell < 0 || !active) return;
     entry[activeCell] = ch.toUpperCase();
+    inked = activeCell;
     const pos = active.cells.indexOf(activeCell);
     const next = active.cells[pos + 1];
     if (next != null) activeCell = next;
@@ -168,7 +178,7 @@ export function mountCrossword(root, puzzle) {
 
   function checkDone() {
     const done = model.cells.every((c) => c.isBlack || entry[c.index] === c.solution);
-    if (done) status.textContent = "🎉 Finished! Every letter correct.";
+    if (done) { status.textContent = "🎉 Finished! Every letter correct."; wave = true; }
   }
 
   // Build the on-screen big-key letter pad (no tiny phone keyboard needed)
@@ -220,11 +230,11 @@ export function mountCrossword(root, puzzle) {
     });
     if (wrong) status.textContent = `${wrong} letter${wrong === 1 ? "" : "s"} need another look. No harm done, try again.`;
     else if (blank) status.textContent = `So far so good: ${blank} square${blank === 1 ? "" : "s"} still empty.`;
-    else status.textContent = "🎉 All correct!";
+    else { status.textContent = "🎉 All correct!"; wave = true; draw(); }
   });
   root.querySelector("[data-cw-reveal-letter]")?.addEventListener("click", () => {
     const c = model.cells[activeCell];
-    if (c && !c.isBlack) { entry[activeCell] = c.solution; checkDone(); draw(); }
+    if (c && !c.isBlack) { entry[activeCell] = c.solution; inked = activeCell; checkDone(); draw(); }
   });
   root.querySelector("[data-cw-reveal-word]")?.addEventListener("click", () => {
     if (!active) return;

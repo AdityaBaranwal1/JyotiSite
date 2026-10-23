@@ -6,12 +6,17 @@
   <title>The Back Page · Jeevan Jyoti, The Community Paper</title>
   <meta name="description" content="Puzzles, the almanac, and the weather: the back page of the Jeevan Jyoti community paper.">
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <!-- The masthead is inked once per visit: later pages in the same sitting
+       open already printed. Runs before the stylesheets so nothing flickers. -->
+  <script>try{if(sessionStorage.getItem("jj-press"))document.documentElement.classList.add("jj-pressed");else sessionStorage.setItem("jj-press","1")}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paper.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/motion.css">
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/motion.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the puzzles</a>
@@ -31,7 +36,7 @@
         <span class="deva" lang="hi">जीवन ज्योति</span>
         <h1 class="name">Jeevan Jyoti</h1>
         <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          <path pathLength="1" d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         </svg>
         <span class="tagline">The Back Page</span>
       </div>
@@ -87,8 +92,10 @@
             <button type="button" class="btn btn--quiet" data-sudoku-check>Check my work</button>
             <button type="button" class="btn btn--quiet" data-sudoku-pencil aria-pressed="false">Pencil marks</button>
           </div>
-          <div class="sk-board" data-sudoku-board role="grid" aria-label="Sudoku board"></div>
-          <div class="sk-pad" data-sudoku-pad role="group" aria-label="Number pad"></div>
+          <div class="sk-play">
+            <div class="sk-board" data-sudoku-board role="grid" aria-label="Sudoku board"></div>
+            <div class="sk-pad" data-sudoku-pad role="group" aria-label="Number pad"></div>
+          </div>
           <p class="game-status" data-sudoku-status role="status" aria-live="polite"></p>
         </div>
       </section>
@@ -103,24 +110,28 @@
             letters below. Stuck? “Reveal” is always there. No shame in it.</p>
         </div>
         <div id="crossword" class="crossword-wrap feature-body" hidden>
-          <p class="cw-clue" data-cw-clue role="status" aria-live="polite"></p>
-          <div class="cw-board" data-cw-board role="grid" aria-label="Crossword grid" tabindex="0"></div>
-          <div class="cw-pad" data-cw-pad role="group" aria-label="Letter pad"></div>
-          <div class="game-toolbar">
-            <button type="button" class="btn btn--quiet" data-cw-check>Check</button>
-            <button type="button" class="btn btn--quiet" data-cw-reveal-letter>Reveal letter</button>
-            <button type="button" class="btn btn--quiet" data-cw-reveal-word>Reveal word</button>
-            <button type="button" class="btn btn--quiet" data-cw-clear>Clear all</button>
-          </div>
-          <p class="game-status" data-cw-status role="status" aria-live="polite"></p>
-          <div class="cw-clues">
-            <div>
-              <h3>Across</h3>
-              <ul data-cw-across></ul>
+          <div class="cw-layout">
+            <div class="cw-play">
+              <p class="cw-clue" data-cw-clue role="status" aria-live="polite"></p>
+              <div class="cw-board" data-cw-board role="grid" aria-label="Crossword grid" tabindex="0"></div>
+              <div class="cw-pad" data-cw-pad role="group" aria-label="Letter pad"></div>
+              <div class="game-toolbar">
+                <button type="button" class="btn btn--quiet" data-cw-check>Check</button>
+                <button type="button" class="btn btn--quiet" data-cw-reveal-letter>Reveal letter</button>
+                <button type="button" class="btn btn--quiet" data-cw-reveal-word>Reveal word</button>
+                <button type="button" class="btn btn--quiet" data-cw-clear>Clear all</button>
+              </div>
+              <p class="game-status" data-cw-status role="status" aria-live="polite"></p>
             </div>
-            <div>
-              <h3>Down</h3>
-              <ul data-cw-down></ul>
+            <div class="cw-clues">
+              <div>
+                <h3>Across</h3>
+                <ul data-cw-across></ul>
+              </div>
+              <div>
+                <h3>Down</h3>
+                <ul data-cw-down></ul>
+              </div>
             </div>
           </div>
         </div>
