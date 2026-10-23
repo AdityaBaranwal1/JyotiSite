@@ -6,10 +6,11 @@ import {
   applyTheme, applyScale, loadSavedTheme, loadScale, saveScale, SCALE_STEPS,
   CURATED_FONTS,
 } from "./theme.js";
-import { getSchedule } from "./data-adapter.js";
+import { getSchedule, describeSeries } from "./data-adapter.js";
 import {
-  renderSchedule, renderStaleNotice, renderMonthCalendar, renderDayListings,
-  filterWeek, filterMonth, weekLabelFor, updatedLabelFor, monthTitle, monthBounds,
+  renderSchedule, renderStaleNotice, renderTimetable, renderDayListings,
+  renderStandingPrograms, filterWeek, filterMonth, weekLabelFor,
+  updatedLabelFor, monthTitle, monthBounds,
 } from "./schedule.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
@@ -62,9 +63,21 @@ async function fillSchedule() {
   if (!datebook) return;
   const view = datebook.dataset.view || "week";
 
-  const { ok, stale, schedule } = await getSchedule();
+  /* ?preview=1 renders the volunteer's unpublished draft instead of the
+     published paper. It reads from the session-guarded preview endpoint and
+     is given a throwaway cache, so a draft can never settle into the reader's
+     stored copy of the schedule. */
+  const previewing = new URLSearchParams(location.search).get("preview") === "1";
+  const { ok, stale, schedule } = previewing
+    ? await getSchedule({
+        url: "/api/schedule/preview",
+        storage: { getItem: () => null, setItem: () => {} },
+      })
+    : await getSchedule();
+
   const noticeSlot = document.getElementById("notice-slot");
-  if (stale && noticeSlot) renderStaleNotice(noticeSlot);
+  if (previewing) showPreviewBanner(ok);
+  else if (stale && noticeSlot) renderStaleNotice(noticeSlot);
 
   if (view === "month") {
     initMonthView(datebook, ok ? schedule : null);
@@ -89,6 +102,18 @@ async function fillSchedule() {
 
   const note = document.getElementById("editors-note-text");
   if (note && schedule?.editorsNote) note.textContent = schedule.editorsNote;
+}
+
+/* A preview must never be mistaken for the paper readers are getting. */
+function showPreviewBanner(ok) {
+  const bar = document.createElement("div");
+  bar.className = "preview-bar";
+  bar.setAttribute("role", "status");
+  bar.textContent = ok
+    ? "Preview of unpublished changes — readers are still seeing the last published paper."
+    : "Nothing to preview. Make a change on the Editor's Desk, then preview again.";
+  document.body.prepend(bar);
+  document.body.classList.add("is-previewing");
 }
 
 /* TEMPORARY variant picker for the weekly datebook (remove before launch).
@@ -126,6 +151,10 @@ function initMonthView(container, schedule) {
   const events = schedule ? schedule.events : [];
   const bounds = monthBounds(events);
 
+  // The rhythm, stated once in words, above the month that varies it.
+  const standing = document.getElementById("standing-programs");
+  if (standing) renderStandingPrograms(standing, schedule?.series ?? [], describeSeries);
+
   const fromParam = /^\d{4}-\d{2}$/.test(new URLSearchParams(location.search).get("m") || "")
     ? new URLSearchParams(location.search).get("m").split("-").map(Number)
     : null;
@@ -153,7 +182,7 @@ function initMonthView(container, schedule) {
 
   const draw = () => {
     if (titleEl) titleEl.textContent = monthTitle(year, month1);
-    renderMonthCalendar(container, events, {
+    renderTimetable(container, events, {
       year, month1, selected,
       onSelectDay: (iso) => { selected = iso; draw(); },
     });

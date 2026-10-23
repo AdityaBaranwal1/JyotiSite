@@ -9,9 +9,106 @@
      "sheets"   — published Google Sheet CSV (no API key needed)   [stub]
      "airtable" — Airtable REST API                                 [stub]   */
 
+/* rrule publishes a UMD `main` and an ESM `module` with no exports map, so
+   Node and the bundler resolve different builds. A namespace import is the
+   one form that yields the class under both. */
+import * as rrulePkg from "rrule";
+/* Reading the namespace through a parameter keeps the bundler from resolving
+   (and warning about) the branch its own resolution makes dead. */
+const pickRRule = (ns) => ns.RRule ?? ns.default?.RRule ?? ns.default;
+const RRule = pickRRule(rrulePkg);
+
 export const SOURCE = "json";
 export const SCHEDULE_URL = "data/schedule.json";
 const CACHE_KEY = "jyoti-schedule-cache";
+
+/* ---------- Standing programs ----------
+   The paper's week is a drumbeat: yoga every Monday, computer help every
+   Tuesday. Storing that as one row per occurrence is what let the schedule
+   quietly expire. A series states the rhythm once as an RRULE; `exceptions`
+   carry the week-to-week variation (this Wednesday's art topic, a cancelled
+   talk, a holiday closure).
+
+   Dates are labels, never instants: rrule runs in UTC and we read back the
+   calendar date only, so a clock change can never shift a program by a day.
+   Time of day lives in startTime/endTime as written. */
+
+const pad = (n) => String(n).padStart(2, "0");
+const isoOfUTC = (d) =>
+  `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+
+function utcMidnight(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+}
+
+/* "every week on Monday" — rrule's own prose, tidied for the paper's voice.
+   Used by the standing-programs strip, which states the rhythm in words so a
+   reader who never looks at the grid still learns when their class meets. */
+export function describeSeries(s) {
+  try {
+    const text = RRule.fromString(`RRULE:${s.rrule}`).toText();
+    return text.replace(/^every week on /, "Every ").replace(/^every /, "Every ");
+  } catch {
+    return "";
+  }
+}
+
+/* `includeSkipped` is for the volunteers' desk: readers should never see a
+   day that was taken off, but an editor needs to see it in order to put it
+   back. */
+export function expandSeries(series, exceptions = [], { includeSkipped = false } = {}) {
+  if (!Array.isArray(series)) return [];
+
+  // exceptions keyed by "<seriesId>@<date>"
+  const byKey = new Map();
+  for (const x of exceptions ?? []) {
+    if (x && x.seriesId && x.date) byKey.set(`${x.seriesId}@${x.date}`, x);
+  }
+
+  const has = (o, k) => o != null && Object.prototype.hasOwnProperty.call(o, k);
+
+  const out = [];
+  for (const s of series) {
+    if (!s || typeof s !== "object") continue;
+    const dtstart = utcMidnight(s.from);
+    const until = utcMidnight(s.until);
+    if (!dtstart || !until || !s.rrule) continue;
+
+    let dates;
+    try {
+      dates = RRule.fromString(`DTSTART:${s.from.replace(/-/g, "")}T000000Z\nRRULE:${s.rrule}`)
+        .between(dtstart, until, true);
+    } catch {
+      continue;   // a malformed rule drops its series, never the whole paper
+    }
+
+    for (const d of dates) {
+      const date = isoOfUTC(d);
+      const ex = byKey.get(`${s.id}@${date}`) ?? null;
+      if (ex?.skip && !includeSkipped) continue;   // no program that day at all
+      out.push({
+        skipped: Boolean(ex?.skip),
+        hasException: Boolean(ex),
+        title: ex?.title ?? s.title,
+        shortTitle: ex?.shortTitle ?? s.shortTitle ?? s.title,
+        description: ex?.description ?? s.description,
+        category: ex?.category ?? s.category,
+        date,
+        startTime: ex?.startTime ?? s.startTime,
+        endTime: ex?.endTime ?? s.endTime,
+        // an exception may deliberately clear the link (a cancelled talk),
+        // so presence of the key matters, not its truthiness
+        zoomLink: has(ex, "zoomLink") ? ex.zoomLink : s.zoomLink,
+        cancelled: ex?.cancelled ?? false,
+        isNew: ex?.isNew ?? false,
+        seriesId: s.id,
+      });
+    }
+  }
+  return out;
+}
 
 /* ---------- Normalization ---------- */
 
@@ -35,6 +132,10 @@ export function normalizeEvent(raw, defaultZoomLink = null) {
 
   return {
     title,
+    // Grid cells have one column's worth of room; shortTitle is what the
+    // timetable prints when the full headline will not fit.
+    shortTitle: String(raw.shortTitle ?? "").trim() || title,
+    seriesId: String(raw.seriesId ?? "").trim() || null,
     description: String(raw.description ?? "").trim(),
     category: String(raw.category ?? "").trim(),
     date,
@@ -53,13 +154,19 @@ export function normalizeSchedule(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
   let defaultZoomLink = String(r.defaultZoomLink ?? "").trim();
   if (!/^https?:\/\//i.test(defaultZoomLink)) defaultZoomLink = null;
-  const events = Array.isArray(r.events)
-    ? r.events.map((e) => normalizeEvent(e, defaultZoomLink)).filter(Boolean)
-    : [];
+  // Standing programs expand first, then one-off events are layered on top.
+  const expanded = expandSeries(r.series, r.exceptions);
+  const oneOffs = Array.isArray(r.events) ? r.events : [];
+  const events = [...expanded, ...oneOffs]
+    .map((e) => normalizeEvent(e, defaultZoomLink))
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+
   return {
     defaultZoomLink,
     savedAt: String(r.savedAt ?? "").trim(),
     editorsNote: String(r.editorsNote ?? "").trim(),
+    series: Array.isArray(r.series) ? r.series : [],
     events,
   };
 }

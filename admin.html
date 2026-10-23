@@ -78,6 +78,19 @@
       <div id="week-panel"></div>
       <div id="month-panel" hidden></div>
 
+      <!-- What is normally on -->
+      <section class="feature" aria-labelledby="standing-h">
+        <div class="section-head">
+          <span class="kicker">The shape of a normal week</span>
+          <h2 id="standing-h">Standing Programs</h2>
+          <hr class="thick-thin">
+          <p class="byline">These run every week on their own. You do not need to enter them —
+            change a single date from the week or month outlook above, and only that date
+            changes.</p>
+        </div>
+        <div id="standing-list"></div>
+      </section>
+
       <!-- Settings -->
       <section class="feature" aria-labelledby="settings-h">
         <div class="section-head">
@@ -99,12 +112,38 @@
         </div>
       </section>
 
+      <!-- Previous editions -->
+      <section class="feature" aria-labelledby="editions-h">
+        <div class="section-head">
+          <span class="kicker">If something goes wrong</span>
+          <h2 id="editions-h">Previous Editions</h2>
+          <hr class="thick-thin">
+          <p class="byline">Every time you publish, the paper you replaced is kept here. Putting
+            one back is safe — the paper you are replacing now gets kept too.</p>
+        </div>
+        <div id="editions-list"></div>
+      </section>
+
       <!-- Publish bar -->
       <div class="publish-bar">
+        <button type="button" class="btn btn--quiet" id="preview">See how it will look</button>
         <button type="button" class="btn" id="publish">Publish changes</button>
         <span class="game-status" id="publish-status" role="status" aria-live="polite"></span>
       </div>
     </main>
+
+    <!-- ================= PREVIEW ================= -->
+    <dialog id="preview-dialog" class="preview-dialog">
+      <div class="preview-head">
+        <h2 id="preview-title">How it will look</h2>
+        <div class="view-toggle" role="group" aria-label="Which page to preview">
+          <button type="button" class="btn btn--quiet" id="preview-front" aria-pressed="true">Front page</button>
+          <button type="button" class="btn btn--quiet" id="preview-month" aria-pressed="false">The month</button>
+        </div>
+        <button type="button" class="btn btn--quiet" id="preview-close">Close preview</button>
+      </div>
+      <iframe id="preview-frame" title="Preview of the paper"></iframe>
+    </dialog>
 
     <!-- ================= DAY EDITOR (from the month outlook) ================= -->
     <dialog id="day-dialog" class="event-dialog">
@@ -122,6 +161,10 @@
       <form method="dialog" id="event-form">
         <h2 id="event-dialog-title">Edit program</h2>
         <hr class="thick-thin">
+        <p class="standing-banner" id="ev-standing" hidden>
+          <span class="kicker">This week only</span>
+          <span id="ev-standing-text"></span>
+        </p>
         <div class="field-grid">
           <div class="field span2">
             <label for="ev-title">Program name</label>
@@ -130,6 +173,7 @@
           <div class="field">
             <label for="ev-date">Date</label>
             <input id="ev-date" type="date" required>
+            <span class="field-note" id="ev-date-note" hidden>Set by the standing program</span>
           </div>
           <div class="field">
             <label for="ev-category">Kind of program</label>
@@ -140,6 +184,7 @@
               <option value="computer">Computer / phone help</option>
               <option value="finance">Money matters</option>
               <option value="health">Health</option>
+              <option value="stock market">Stock market / investing</option>
               <option value="talk">Talk / discussion</option>
               <option value="social">Social hour</option>
               <option value="">Something else</option>
@@ -176,6 +221,7 @@
         <div class="dialog-actions">
           <button type="button" class="btn" id="ev-save">Save program</button>
           <button type="button" class="btn btn--quiet" id="ev-cancel">Never mind</button>
+          <button type="button" class="btn btn--quiet" id="ev-reset" hidden>Use the usual again</button>
           <button type="button" class="btn btn--quiet btn--danger" id="ev-delete" hidden>Remove program</button>
         </div>
       </form>

@@ -3,6 +3,10 @@
    TODAY/NEW/CANCELLED rubber stamps. Consumes the normalized event shape
    from data-adapter.js only. */
 
+import {
+  parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  eachDayOfInterval, isSameDay, addMonths, getDay,
+} from "date-fns";
 import { categoryIcon } from "./icons.js";
 
 export const DEFAULT_PHONE = "845-709-2216";
@@ -11,11 +15,13 @@ const MONTHS = ["January","February","March","April","May","June",
                 "July","August","September","October","November","December"];
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-/* Parse "YYYY-MM-DD" in LOCAL time (new Date(str) would give UTC). */
-function localDate(iso) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
+/* The paper's week runs Monday to Sunday, so every week boundary in here
+   passes weekStartsOn:1 rather than date-fns' Sunday default. */
+const MON = { weekStartsOn: 1 };
+
+/* "YYYY-MM-DD" is a calendar label, and parseISO reads it as local midnight —
+   `new Date(str)` would read it as UTC and shift the day in our timezone. */
+const localDate = (iso) => parseISO(iso);
 
 export function formatTime(hhmm) {
   const [h, m] = String(hhmm).split(":").map(Number);
@@ -38,15 +44,10 @@ export function timeRange(start, end) {
 /* Monday..Sunday window containing `now` (a Sunday belongs to the week
    that began the previous Monday). */
 function weekBounds(now) {
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  const sunday = new Date(monday);
-  sunday.setDate(sunday.getDate() + 6);
-  return { monday, sunday };
+  return { monday: startOfWeek(now, MON), sunday: endOfWeek(now, MON) };
 }
 
-const isoOf = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const isoOf = (d) => format(d, "yyyy-MM-dd");
 
 export function weekLabelFor(now = new Date()) {
   const { monday, sunday } = weekBounds(now);
@@ -93,10 +94,7 @@ export function dayLabel(iso) {
 }
 
 export function isToday(iso, now = new Date()) {
-  const d = localDate(iso);
-  return d.getFullYear() === now.getFullYear() &&
-         d.getMonth() === now.getMonth() &&
-         d.getDate() === now.getDate();
+  return isSameDay(localDate(iso), now);
 }
 
 export function groupByDay(events) {
@@ -218,11 +216,12 @@ export function renderMonthCalendar(container, events, { year, month1, now = new
   }
   const first = new Date(year, month1 - 1, 1);
   const lead = (first.getDay() + 6) % 7;
-  for (let i = 0; i < lead; i++) {
-    const pad = el("button", "cal-cell");
-    pad.type = "button"; pad.disabled = true;
-    grid.appendChild(pad);
-  }
+  const pad = () => {
+    const c = el("div", "cal-cell cal-cell--pad");
+    c.setAttribute("aria-hidden", "true");
+    return c;
+  };
+  for (let i = 0; i < lead; i++) grid.appendChild(pad());
   const daysInMonth = new Date(year, month1, 0).getDate();
   for (let day = 1; day <= daysInMonth; day++) {
     const iso = `${year}-${String(month1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -242,6 +241,10 @@ export function renderMonthCalendar(container, events, { year, month1, now = new
     }
     grid.appendChild(cell);
   }
+  // Complete the last week so the grid closes on a square edge instead of
+  // stopping mid-row.
+  const trail = (7 - ((lead + daysInMonth) % 7)) % 7;
+  for (let i = 0; i < trail; i++) grid.appendChild(pad());
   container.appendChild(grid);
 }
 
@@ -279,10 +282,7 @@ export function renderMonthList(container, events, { year, month1, now = new Dat
   // group by Monday-of-week
   const byWeek = new Map();
   for (const e of monthEvents) {
-    const d = localDate(e.date);
-    const monday = new Date(d);
-    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-    const key = isoOf(monday);
+    const key = isoOf(startOfWeek(localDate(e.date), MON));
     if (!byWeek.has(key)) byWeek.set(key, []);
     byWeek.get(key).push(e);
   }
@@ -328,4 +328,125 @@ export function renderStaleNotice(container) {
       `This may not be the latest schedule. Call us at ${DEFAULT_PHONE} to confirm.`)
   );
   container.appendChild(box);
+}
+
+/* ---------- The Month Ahead: a timetable, not a wall calendar ----------
+   This community's month is a drumbeat — yoga every Monday, computer help
+   every Tuesday — so the grid prints the PROGRAM, not a dot. Identical
+   programs stack down a column and the rhythm becomes visible; the breaks in
+   that column (a cancellation, a holiday, a one-off special) are the part
+   actually worth reading. Marigold is spent on exactly two things: today, and
+   anything that is not the usual. */
+
+const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/* "10 AM", "3 PM", "11:30 AM" — the grid has one column's width, so a time
+   with no minutes drops ":00" rather than wrapping the cell. */
+export function briefTime(hhmm) {
+  const [h, m] = String(hhmm).split(":").map(Number);
+  const am = h < 12;
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h12} ${am ? "AM" : "PM"}` : `${h12}:${String(m).padStart(2, "0")} ${am ? "AM" : "PM"}`;
+}
+
+function timetableEntry(event) {
+  const entry = el("div", "tt-entry");
+  // A one-off has no series behind it, so it is by definition not the usual.
+  if (!event.seriesId || event.isNew) entry.classList.add("is-unusual");
+  if (event.cancelled) entry.classList.add("is-cancelled");
+
+  entry.appendChild(el("span", "tt-name", event.shortTitle || event.title));
+  entry.appendChild(el("span", "tt-time",
+    event.cancelled ? "Cancelled" : briefTime(event.startTime)));
+  return entry;
+}
+
+export function renderTimetable(container, events, { year, month1, now = new Date(), selected, onSelectDay } = {}) {
+  container.textContent = "";
+  const monthEvents = filterMonth(events, year, month1);
+  const byDate = new Map();
+  for (const e of monthEvents) {
+    if (!byDate.has(e.date)) byDate.set(e.date, []);
+    byDate.get(e.date).push(e);
+  }
+
+  const grid = el("div", "timetable");
+
+  // The abbreviation is what prints: a tracked full weekday overruns its
+  // column at the largest reader size, and the cells below already say what
+  // each day holds. Screen readers still get the whole word.
+  for (let i = 1; i <= 7; i++) {
+    const head = el("div", "tt-dow");
+    head.appendChild(el("span", "visually-hidden", DAYS[i % 7]));
+    head.appendChild(el("span", null, SHORT_DAYS[i % 7]));
+    head.setAttribute("aria-hidden", "false");
+    grid.appendChild(head);
+  }
+
+  const first = new Date(year, month1 - 1, 1);
+  const lead = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month1, 0).getDate();
+  const pad = () => {
+    const c = el("div", "tt-day tt-day--pad");
+    c.setAttribute("aria-hidden", "true");
+    return c;
+  };
+  for (let i = 0; i < lead; i++) grid.appendChild(pad());
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${year}-${String(month1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const todays = (byDate.get(iso) || [])
+      .slice()
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const d = localDate(iso);
+
+    const cell = el(todays.length ? "button" : "div", "tt-day");
+    if (todays.length) {
+      cell.type = "button";
+      cell.classList.add("has-events");
+      cell.addEventListener("click", () => onSelectDay?.(iso));
+    } else {
+      cell.classList.add("is-quiet");
+    }
+    if (isToday(iso, now)) cell.classList.add("is-today");
+    if (iso === selected) cell.classList.add("is-selected");
+
+    const head = el("div", "tt-daynum");
+    // The weekday only needs printing when the columns collapse on a phone.
+    head.appendChild(el("span", "tt-dow-inline", SHORT_DAYS[d.getDay()]));
+    head.appendChild(el("span", "tt-date", String(day)));
+    cell.appendChild(head);
+
+    for (const e of todays) cell.appendChild(timetableEntry(e));
+    if (!todays.length) cell.appendChild(el("span", "tt-none", "No programs"));
+
+    cell.setAttribute("aria-label", todays.length
+      ? `${dayLabel(iso)}: ${todays.map((e) => e.title).join(", ")}`
+      : `${dayLabel(iso)}: no programs`);
+    grid.appendChild(cell);
+  }
+
+  const trail = (7 - ((lead + daysInMonth) % 7)) % 7;
+  for (let i = 0; i < trail; i++) grid.appendChild(pad());
+
+  container.appendChild(grid);
+}
+
+/* The rhythm stated in words, once, so a reader who never reads the grid
+   still learns which day their class meets. */
+export function renderStandingPrograms(container, series, describe) {
+  container.textContent = "";
+  if (!series || series.length === 0) return;
+
+  const list = el("dl", "standing");
+  for (const s of series) {
+    const row = el("div", "standing-row");
+    row.appendChild(el("dt", "standing-when", describe(s)));
+    const what = el("dd", "standing-what");
+    what.appendChild(el("span", "standing-name", s.title));
+    what.appendChild(el("span", "standing-time", timeRange(s.startTime, s.endTime)));
+    row.appendChild(what);
+    list.appendChild(row);
+  }
+  container.appendChild(list);
 }

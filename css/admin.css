@@ -63,9 +63,11 @@
   text-transform: uppercase;
   font-size: max(17px, var(--text-size));
 }
+/* Three fixed tracks — programme, state, actions — so the buttons sit in the
+   same place whether or not the row carries a badge. */
 .desk-event {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 8px 16px;
   width: 100%;
@@ -74,10 +76,18 @@
   padding: 12px 2px;
   font-size: max(18px, var(--text-size));
 }
-.desk-event .de-what { font-family: var(--font-head); flex: 1 1 auto; }
+.desk-event .de-what { grid-column: 1; font-family: var(--font-head); }
 .desk-event .de-what strong { font-weight: 600; }
-.desk-event .de-badges { font-family: var(--font-body); font-weight: 700; white-space: nowrap; }
-.desk-event .de-edit { margin-left: auto; min-height: 48px; }
+.desk-event .de-state { grid-column: 2; }
+.desk-event .de-actions { grid-column: 3; }
+.desk-event .de-actions .btn { min-height: 48px; }
+@media (max-width: 720px) {
+  .desk-event { grid-template-columns: 1fr; }
+  .desk-event .de-what,
+  .desk-event .de-state,
+  .desk-event .de-actions { grid-column: 1; }
+  .desk-event .de-state { justify-self: start; }
+}
 .desk-event.is-cancelled .de-what { text-decoration: line-through; text-decoration-thickness: 2px; }
 .desk-empty { padding: 12px 2px; font-style: italic; border-bottom: var(--hairline); }
 .desk-add {
@@ -171,14 +181,34 @@
 #publish:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--ink); }
 
 /* ---------- event dialog ---------- */
+/* The form is taller than a laptop screen once a standing program adds its
+   banner and its extra actions. Scroll the fields, but keep Save where the
+   volunteer can always see it — they should never have to discover it. */
 .event-dialog {
   border: 3px solid var(--ink);
   background: var(--panel);
   color: var(--ink);
-  padding: 26px 28px;
+  padding: 0;
   max-width: 640px;
   width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
 }
+.event-dialog > form,
+.event-dialog > :not(form) { }
+#event-form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
+}
+#event-form > :not(.dialog-actions) { flex: 0 0 auto; }
+#event-form .field-grid { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+#event-form > h2,
+#event-form > hr,
+#event-form > .standing-banner,
+#event-form > .studio-msg { margin-inline: 28px; }
+#event-form > h2 { margin-top: 24px; }
+#event-form .field-grid { margin-inline: 28px; padding-bottom: 4px; }
 .event-dialog::backdrop { background: rgba(31, 45, 80, 0.45); }
 .event-dialog h2 { margin-bottom: 8px; }
 .field-grid {
@@ -203,7 +233,140 @@
 .event-dialog #ev-zoom-url { margin-left: 36px; width: calc(100% - 36px); }
 .check-row { display: flex; flex-wrap: wrap; gap: 6px 30px; }
 .check-row label { display: flex; align-items: center; gap: 10px; font-weight: 400; }
-.dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 0;
+  padding: 16px 28px 22px;
+  background: var(--panel);
+  border-top: var(--hairline);
+  position: sticky;
+  bottom: 0;
+  flex: 0 0 auto;
+}
+/* The day dialog is a plain list, not the long form: keep its old spacing. */
+#day-dialog { padding: 26px 28px; }
+#day-dialog .dialog-actions { padding: 0; margin-top: 22px; border-top: 0; position: static; }
+
+/* A locked field must look locked, or a volunteer will fight it. */
+.event-dialog input[readonly] {
+  background: transparent;
+  border-style: dashed;
+  cursor: not-allowed;
+}
 .btn--danger { border-color: var(--ink); }
 .btn--danger:hover { background: #d9534f; color: #fff; }
 @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
+
+/* ---------- standing programs on the desk ---------- */
+.standing-def {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 2px 16px;
+  padding: 11px 0;
+  border-bottom: var(--hairline);
+}
+.standing-def:first-child { border-top: var(--hairline); }
+.sd-when { font-family: var(--font-body); font-weight: 700; }
+.sd-what { font-family: var(--font-head); }
+
+/* Where a program on the desk came from, and what has happened to it. */
+.de-origin {
+  display: block;
+  font-family: var(--font-body);
+  font-size: max(15px, calc(var(--text-size) * 0.78));
+  margin-top: 2px;
+}
+.de-state {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(15px, calc(var(--text-size) * 0.75));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: var(--hairline);
+  white-space: nowrap;
+  align-self: center;
+}
+.de-state--changed { background: var(--accent-soft); }
+.de-state--cancelled,
+.de-state--off { background: transparent; }
+.de-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.desk-event.is-skipped .de-what { opacity: 0.7; }
+.desk-event.is-skipped .de-what strong { text-decoration: line-through; text-decoration-thickness: 2px; }
+
+.standing-banner {
+  border-left: 3px solid var(--accent);
+  padding: 8px 0 8px 12px;
+  margin: 0 0 16px;
+  font-family: var(--font-body);
+  font-size: max(16px, calc(var(--text-size) * 0.85));
+}
+@media (max-width: 620px) {
+  .standing-def { grid-template-columns: 1fr; }
+}
+.field-note {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: max(15px, calc(var(--text-size) * 0.78));
+}
+
+/* ---------- previous editions ---------- */
+.edition-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: var(--hairline);
+}
+.edition-row:first-child { border-top: var(--hairline); }
+.ed-when { font-family: var(--font-head); font-weight: 600; font-size: max(18px, var(--text-size)); }
+.ed-what {
+  grid-column: 1;
+  font-family: var(--font-body);
+  font-size: max(15px, calc(var(--text-size) * 0.8));
+}
+.ed-restore { grid-column: 2; grid-row: 1 / span 2; min-height: 48px; }
+
+/* ---------- preview ---------- */
+.preview-dialog {
+  border: 3px solid var(--ink);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0;
+  width: calc(100vw - 32px);
+  max-width: 1200px;
+  height: calc(100vh - 32px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+.preview-dialog:not([open]) { display: none; }
+.preview-dialog::backdrop { background: rgba(31, 45, 80, 0.55); }
+/* Room for the sticky publish bar, so the last row of any list can always be
+   scrolled clear of it. */
+#desk-view { padding-bottom: 96px; }
+
+.preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 18px 22px 12px;
+}
+.preview-head h2 { margin: 0; flex: 1 1 auto; }
+#preview-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  border-top: var(--hairline);
+  background: var(--paper);
+  min-height: 0;
+}
+@media (max-width: 620px) {
+  .edition-row { grid-template-columns: 1fr; }
+  .ed-restore { grid-column: 1; grid-row: auto; justify-self: start; }
+}

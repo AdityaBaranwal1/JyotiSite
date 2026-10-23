@@ -4,3 +4,10 @@ data/admin.json
 Thumbs.db
 *.log
 .claude/launch.json
+
+# build output & test artefacts
+dist/
+test-results/
+playwright-report/
+.tmp-test-data/
+data/versions/

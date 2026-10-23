@@ -348,6 +348,11 @@ nav.paper-nav a[aria-current="page"] {
   font-family: var(--font-body);
 }
 .cal-grid--public .cal-cell:disabled { cursor: default; opacity: 0.45; }
+/* Days belonging to the neighbouring month: blank paper, not a dimmed day. */
+.cal-grid--public .cal-cell--pad {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  opacity: 1;
+}
 .cal-grid--public .cal-cell.has-events:hover { background: var(--accent-soft); }
 .cal-grid--public .cal-date {
   font-weight: 700;
@@ -871,3 +876,152 @@ footer.colophon .foot-links { margin-top: 10px; display: flex; justify-content: 
   white-space: pre;
 }
 .export-out:empty { display: none; }
+
+/* ---------- The Month Ahead: timetable ----------
+   Columns are weekdays, rows are weeks, and every cell prints the program
+   rather than a dot — so a standing class stacks down its column and the
+   month's rhythm is readable at a glance. Marigold is rationed to two jobs:
+   TODAY, and anything that is not the usual. Everything else is ink. */
+
+.standing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  gap: 0;
+  margin: 0 0 30px;
+  border-top: var(--rule-thick);
+}
+.standing-row {
+  border-bottom: var(--hairline);
+  padding: 12px 16px 12px 0;
+}
+.standing-when {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  letter-spacing: 0.02em;
+}
+.standing-what { margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; }
+.standing-name { font-family: var(--font-head); font-size: max(17px, var(--text-size)); }
+.standing-time { font-family: var(--font-body); font-size: max(17px, calc(var(--text-size) * 0.85)); }
+
+.timetable {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 3px solid var(--accent);
+  border-left: var(--hairline);
+  margin-top: 14px;
+}
+.tt-dow {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: max(17px, calc(var(--text-size) * 0.8));
+  padding: 10px 8px;
+  border-right: var(--hairline);
+  border-bottom: var(--hairline);
+}
+.tt-day {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 108px;
+  padding: 8px 8px 10px;
+  border: 0;
+  border-right: var(--hairline);
+  border-bottom: var(--hairline);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+.tt-day.has-events { cursor: pointer; }
+.tt-day.has-events:hover { background: var(--accent-soft); }
+.tt-day:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+.tt-day--pad { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+
+.tt-daynum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  margin-bottom: 6px;
+}
+.tt-dow-inline { display: none; font-weight: 700; }
+.tt-date { font-weight: 700; }
+/* Today is the one fixed point in the month: the single marigold disc. */
+.is-today .tt-date {
+  background: var(--accent);
+  border-radius: 50%;
+  width: 34px; height: 34px;
+  display: inline-grid;
+  place-items: center;
+}
+.tt-day.is-selected { background: var(--accent-soft); }
+
+.tt-entry {
+  display: block;
+  padding: 5px 0 5px 0;
+}
+/* A rule belongs BETWEEN two programs, never under the day number. */
+.tt-entry + .tt-entry { border-top: var(--hairline); }
+.tt-name {
+  display: block;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: max(17px, calc(var(--text-size) * 0.95));
+  line-height: 1.25;
+}
+.tt-time {
+  display: block;
+  font-family: var(--font-body);
+  font-size: max(17px, calc(var(--text-size) * 0.8));
+}
+/* Not the usual: a new class, or a one-off that no standing rule produced. */
+.tt-entry.is-unusual {
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+  margin-left: -11px;
+  padding-right: 0;
+}
+.tt-entry.is-cancelled .tt-name {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.tt-entry.is-cancelled .tt-time { font-weight: 700; letter-spacing: 0.04em; }
+.tt-none { font-family: var(--font-body); font-size: max(17px, calc(var(--text-size) * 0.8)); }
+.tt-day.is-quiet .tt-none { font-style: italic; }
+
+/* Seven columns cannot survive a phone, and this community is phone-first:
+   below the breakpoint the timetable becomes one ruled day per row. */
+@media (max-width: 880px) {
+  .timetable { grid-template-columns: 1fr; border-left: 0; }
+  .tt-dow { display: none; }
+  .tt-day { min-height: 0; border-right: 0; padding: 12px 0; display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 14px; align-items: start; }
+  /* Written after .tt-day so they win: equal specificity, later rule applies.
+     Neither a neighbouring month's blank square nor an empty day earns a row
+     of its own once the grid is a list. */
+  .tt-day.tt-day--pad,
+  .tt-day.is-quiet { display: none; }
+  .tt-daynum { margin-bottom: 0; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .tt-dow-inline { display: block; }
+  .tt-entry { grid-column: 2; }
+  .tt-entry.is-unusual { margin-left: 0; }
+}
+
+/* ---------- draft preview ----------
+   A previewed page is not the paper. It is banded so nobody mistakes an
+   unpublished draft for what the community is actually reading. */
+.preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--accent);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(17px, calc(var(--text-size) * 0.85));
+  text-align: center;
+  padding: 12px 18px;
+  border-bottom: 3px solid var(--ink);
+}

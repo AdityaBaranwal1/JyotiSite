@@ -2,9 +2,12 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { hashPassword, verifyPassword } from "../server/auth.mjs";
 import { createApp } from "../server/app.mjs";
+
+const siteRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /* ---------- auth unit ---------- */
 
@@ -31,7 +34,7 @@ before(async () => {
     ...(await hashPassword("correct-horse")),
     sessionSecret: "test-secret-please-ignore",
   };
-  const app = createApp({ root: "F:/Code/Jyoti", dataDir, credentials, loginWindowMs: 500, loginMax: 3 });
+  const app = createApp({ root: siteRoot, dataDir, credentials, loginWindowMs: 500, loginMax: 3 });
   await new Promise((res) => { server = app.listen(0, res); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -114,6 +117,47 @@ test("login rate limit: repeated failures get 429", async () => {
   let last;
   for (let i = 0; i < 5; i++) last = await attempt();
   assert.equal(last.status, 429);
+});
+
+test("PUT /api/schedule keeps standing programs an older editor never sent", async () => {
+  // Seed a schedule whose bulk lives in series + exceptions.
+  await writeFile(join(dataDir, "schedule.json"), JSON.stringify({
+    defaultZoomLink: "https://zoom.us/j/999",
+    editorsNote: "hello",
+    series: [{ id: "yoga", title: "Yoga", category: "yoga", startTime: "10:00",
+               endTime: "11:00", rrule: "FREQ=WEEKLY;BYDAY=MO",
+               from: "2026-06-08", until: "2026-06-29" }],
+    exceptions: [{ seriesId: "yoga", date: "2026-06-15", cancelled: true }],
+    events: [],
+  }));
+
+  // The rate-limit test above spends this IP's login budget; the window is
+  // short, so wait it out rather than racing it.
+  await new Promise((r) => setTimeout(r, 700));
+  const login = await fetch(base + "/api/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username: "volunteer", password: "correct-horse" }),
+  });
+  assert.equal(login.status, 200, "volunteer should be able to sign in");
+  const cookie = login.headers.getSetCookie().join("; ");
+
+  // An editor that only understands one-off events publishes.
+  const res = await fetch(base + "/api/schedule", {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({
+      defaultZoomLink: "https://zoom.us/j/999",
+      editorsNote: "updated",
+      events: [{ title: "Diwali Social", date: "2026-06-20", startTime: "16:00" }],
+    }),
+  });
+  assert.equal(res.status, 200);
+
+  const saved = JSON.parse(await readFile(join(dataDir, "schedule.json"), "utf8"));
+  assert.equal(saved.series.length, 1, "standing programs must survive");
+  assert.equal(saved.exceptions.length, 1, "exceptions must survive");
+  assert.equal(saved.editorsNote, "updated");
 });
 
 test("GET /admin serves the admin page", async () => {
