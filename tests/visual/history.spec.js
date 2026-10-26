@@ -14,103 +14,84 @@ test.afterEach(async () => {
 const signIn = async (page) => {
   await page.clock.setFixedTime(new Date("2026-09-19T15:30:00-04:00"));
   await page.goto("/admin");
-  await page.fill("#login-user", "volunteer");
   await page.fill("#login-pass", "localdevpassword");
   await page.click("#login-form button[type=submit]");
   await page.waitForSelector("#desk-view:not([hidden])");
 };
-const publish = async (page) => {
-  await page.click("#publish");
-  await expect(page.locator("#publish-status")).toContainText("Published");
-};
+const saved = (page, text = "Readers see it now") =>
+  expect(page.locator("#save-status")).toContainText(text);
 const rowFor = (page, t) => page.locator(".desk-event").filter({ hasText: t }).first();
 const readSchedule = async () => JSON.parse(await readFile(SCHEDULE, "utf8"));
+const cancelYoga = async (page) => {
+  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Cancel Yoga/ }).click();
+  await saved(page);
+};
 
-/* ---------------- preview ---------------- */
+/* ---------------- the paper, as readers see it ---------------- */
 
-test("preview shows the draft while readers still get the published paper", async ({ page }) => {
+test("See the paper shows the real pages with the change already on them", async ({ page }) => {
   await signIn(page);
-  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Call off/ }).click();
+  await cancelYoga(page);
 
   await page.click("#preview");
   await expect(page.locator("#preview-dialog")).toBeVisible();
-
   const frame = page.frameLocator("#preview-frame");
-  await expect(frame.locator(".preview-bar")).toContainText("unpublished");
-  // The draft has the extra cancellation; the published paper does not.
+  // The week already had one cancelled talk; the change makes two.
   await expect(frame.locator(".listing.is-cancelled")).toHaveCount(2);
 
-  // Nothing was written by previewing.
-  const s = await readSchedule();
-  expect(s.exceptions.find((x) => x.seriesId === "yoga" && x.date === "2026-09-14")).toBeUndefined();
-
-  // And a reader in another tab still sees the published paper.
-  const readerPage = await page.context().newPage();
-  await readerPage.goto("/");
-  await readerPage.waitForSelector(".listing");
-  await expect(readerPage.locator(".listing.is-cancelled")).toHaveCount(1);
-  await expect(readerPage.locator(".preview-bar")).toHaveCount(0);
-});
-
-test("preview can switch between the front page and the month", async ({ page }) => {
-  await signIn(page);
-  await page.click("#preview");
   await page.click("#preview-month");
-  const frame = page.frameLocator("#preview-frame");
   await expect(frame.locator(".timetable")).toBeVisible();
-  await expect(frame.locator(".preview-bar")).toBeVisible();
+  await page.click("#preview-close");
+  await expect(page.locator("#preview-dialog")).toBeHidden();
 });
 
-test("a preview belongs to the volunteer, not the public", async ({ page }) => {
+test("there is no draft preview left to reach", async ({ page }) => {
   await signIn(page);
-  await page.click("#preview");
-  await page.waitForTimeout(300);
-  const status = await page.evaluate(async () => {
-    const r = await fetch("/api/schedule/preview", { credentials: "omit" });
-    return r.status;
-  });
-  expect(status, "a signed-out request must not read the draft").toBe(401);
+  const status = await page.evaluate(async () => (await fetch("/api/schedule/preview")).status);
+  expect(status).toBe(404);
 });
 
-/* ---------------- version history ---------------- */
+/* ---------------- earlier versions ---------------- */
 
-test("publishing files the edition it replaced", async ({ page }) => {
+test("the first change of a sitting keeps the paper from before it", async ({ page }) => {
   await signIn(page);
-  await expect(page.locator("#editions-list")).toContainText("No previous editions yet");
+  await expect(page.locator("#editions-list")).toContainText("Nothing here yet");
 
-  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Call off/ }).click();
-  await publish(page);
-
+  await cancelYoga(page);
   await expect(page.locator(".edition-row")).toHaveCount(1);
+  await expect(page.locator(".edition-row").first()).toContainText("As it was on");
   await expect(page.locator(".edition-row").first()).toContainText("170 programs");
-  await expect(page.locator(".edition-row").first()).toContainText("8 standing");
+
+  // More changes in the same sitting do not bury it under near-copies.
+  await page.click("#undo");
+  await saved(page, "undone");
+  await expect(page.locator(".edition-row")).toHaveCount(1);
 });
 
-test("putting an edition back undoes a publish, and is itself undoable", async ({ page }) => {
+test("putting a version back undoes a mistake, and is itself undoable", async ({ page }) => {
   await signIn(page);
-  // Publish a mistake: the whole Monday class called off.
-  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Call off/ }).click();
-  await publish(page);
+  // A mistake: the Monday class called off.
+  await cancelYoga(page);
   let s = await readSchedule();
   expect(s.exceptions.some((x) => x.seriesId === "yoga" && x.cancelled)).toBe(true);
 
-  // Put back the edition from before the mistake.
+  // Put back the paper from before the mistake.
   page.on("dialog", (d) => d.accept());
   await page.locator(".edition-row").first().getByRole("button", { name: /Put back/ }).click();
-  await expect(page.locator("#publish-status")).toContainText("Put back");
+  await saved(page, "back as it was");
 
   s = await readSchedule();
   expect(s.exceptions.some((x) => x.seriesId === "yoga" && x.date === "2026-09-14" && x.cancelled),
     "the mistake should be gone").toBe(false);
   expect(s.series).toHaveLength(8);
 
-  // The mistaken paper was itself filed, so the restore can be undone.
+  // The mistaken paper was itself kept, so the restore can be undone.
   await expect(page.locator(".edition-row")).toHaveCount(2);
   // And the desk reloaded the restored paper.
   await expect(rowFor(page, "Yoga & Guided Meditation")).not.toContainText("Cancelled");
 });
 
-test("only a signed-in volunteer can list or restore editions", async ({ page }) => {
+test("only a signed-in volunteer can list or restore versions", async ({ page }) => {
   await page.goto("/");
   const out = await page.evaluate(async () => ({
     list: (await fetch("/api/versions")).status,
@@ -143,14 +124,4 @@ test("a restore cannot be talked into reading another file", async ({ page }) =>
   // the schedule is untouched
   const s = await readSchedule();
   expect(s.series).toHaveLength(8);
-});
-
-test("only the last 12 editions are kept", async ({ page }) => {
-  test.slow();
-  await signIn(page);
-  for (let i = 0; i < 14; i++) {
-    await page.fill("#editors-note", `Edition number ${i}.`);
-    await publish(page);
-  }
-  await expect(page.locator(".edition-row")).toHaveCount(12);
 });

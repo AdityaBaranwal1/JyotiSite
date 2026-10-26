@@ -31,7 +31,11 @@ const CACHE_KEY = "jyoti-schedule-cache";
 
    Dates are labels, never instants: rrule runs in UTC and we read back the
    calendar date only, so a clock change can never shift a program by a day.
-   Time of day lives in startTime/endTime as written. */
+   Time of day lives in startTime/endTime as written.
+
+   A series with no `until` runs until a volunteer stops it. It is printed as
+   far as the horizon: the end of the month a year from today, so readers can
+   always look a full year ahead and the paper never quietly runs dry. */
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoOfUTC = (d) =>
@@ -41,6 +45,20 @@ function utcMidnight(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
   if (!m) return null;
   return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+}
+
+/* The last day of the month twelve months after `now`, as a date label. */
+export function defaultHorizon(now = new Date()) {
+  const end = new Date(now.getFullYear(), now.getMonth() + 13, 0);
+  return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+}
+
+/* The weekly programs still running on `today`: not yet ended, whether or not
+   they have begun. A program that was stopped or replaced stays in the data
+   (it still prints the weeks it ran) but is no longer "what is normally on". */
+export function activeSeries(series, today) {
+  return (Array.isArray(series) ? series : []).filter(
+    (s) => s && typeof s === "object" && (!s.until || s.until >= today));
 }
 
 /* "every week on Monday" — rrule's own prose, tidied for the paper's voice.
@@ -58,8 +76,9 @@ export function describeSeries(s) {
 /* `includeSkipped` is for the volunteers' desk: readers should never see a
    day that was taken off, but an editor needs to see it in order to put it
    back. */
-export function expandSeries(series, exceptions = [], { includeSkipped = false } = {}) {
+export function expandSeries(series, exceptions = [], { includeSkipped = false, horizon } = {}) {
   if (!Array.isArray(series)) return [];
+  const openEnd = horizon ?? defaultHorizon();
 
   // exceptions keyed by "<seriesId>@<date>"
   const byKey = new Map();
@@ -73,7 +92,7 @@ export function expandSeries(series, exceptions = [], { includeSkipped = false }
   for (const s of series) {
     if (!s || typeof s !== "object") continue;
     const dtstart = utcMidnight(s.from);
-    const until = utcMidnight(s.until);
+    const until = utcMidnight(s.until || openEnd);
     if (!dtstart || !until || !s.rrule) continue;
 
     let dates;
@@ -150,12 +169,12 @@ export function normalizeEvent(raw, defaultZoomLink = null) {
   };
 }
 
-export function normalizeSchedule(raw) {
+export function normalizeSchedule(raw, { horizon } = {}) {
   const r = raw && typeof raw === "object" ? raw : {};
   let defaultZoomLink = String(r.defaultZoomLink ?? "").trim();
   if (!/^https?:\/\//i.test(defaultZoomLink)) defaultZoomLink = null;
   // Standing programs expand first, then one-off events are layered on top.
-  const expanded = expandSeries(r.series, r.exceptions);
+  const expanded = expandSeries(r.series, r.exceptions, { horizon });
   const oneOffs = Array.isArray(r.events) ? r.events : [];
   const events = [...expanded, ...oneOffs]
     .map((e) => normalizeEvent(e, defaultZoomLink))
