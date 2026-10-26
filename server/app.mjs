@@ -21,6 +21,10 @@ export function createApp({
 } = {}) {
   const app = express();
   app.disable("x-powered-by");
+  /* Public visitors arrive through Tailscale Funnel, which proxies from this
+     machine. Trusting only a loopback proxy lets the login limiter see each
+     visitor's own address, while nobody can claim one from outside. */
+  app.set("trust proxy", "loopback");
   app.use(express.json({ limit: "1mb" }));
 
   const schedulePath = join(dataDir, "schedule.json");
@@ -230,10 +234,16 @@ export function createApp({
 
   /* ---------- pages & static ---------- */
   /* The schedule is runtime state, not build output: it is served straight
-     from the data directory so a rebuild is never needed to publish a week. */
-  app.use("/data", express.static(dataDir, {
-    setHeaders: (res) => res.setHeader("Cache-Control", "no-cache"),
-  }));
+     from the data directory so a rebuild is never needed to publish a week.
+     That directory also holds the volunteer login (admin.json: the password
+     hash and the secret that signs sessions) and the filed editions, so only
+     the paper's own public files are let through; everything else is a 404. */
+  const PUBLIC_DATA = /^\/(schedule\.json|almanac\.json|crosswords\/[\w.-]+\.json)$/;
+  app.use("/data", (req, res, next) => (PUBLIC_DATA.test(req.path) ? next() : res.sendStatus(404)),
+    express.static(dataDir, {
+      dotfiles: "deny",
+      setHeaders: (res) => res.setHeader("Cache-Control", "no-cache"),
+    }));
 
   app.get("/admin", (_req, res) => res.sendFile(join(root, "admin.html")));
   app.use(express.static(root, {
