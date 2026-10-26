@@ -1,5 +1,5 @@
 {
-  "savedAt": "2026-09-19T23:43:15.435Z",
+  "savedAt": "2026-10-26T15:25:00.556Z",
   "defaultZoomLink": "https://zoom.us/j/0000000001",
   "editorsNote": "The cooler mornings are here, friends, and the paper is full again. Our computer class has moved to a new Tuesday hour, the art table turns to autumn colour, and on the first Saturday of October a pharmacist joins us to look over your medicine list, free of charge. Every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together.",
   "series": [
@@ -14,7 +14,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=MO",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "computer",
@@ -27,7 +27,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=TU",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "art",
@@ -40,7 +40,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=WE",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "stocks",
@@ -53,7 +53,7 @@
       "zoomLink": "https://zoom.us/j/0000000004",
       "rrule": "FREQ=WEEKLY;BYDAY=TH",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "bhajan",
@@ -65,7 +65,7 @@
       "endTime": "12:00",
       "rrule": "FREQ=WEEKLY;BYDAY=FR",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "finance",
@@ -78,7 +78,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=FR",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "health",
@@ -91,7 +91,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=SA",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     },
     {
       "id": "social",
@@ -104,7 +104,7 @@
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=SU",
       "from": "2026-06-08",
-      "until": "2026-10-31"
+      "until": "2027-12-31"
     }
   ],
   "exceptions": [
