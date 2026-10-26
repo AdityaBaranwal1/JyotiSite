@@ -1,4 +1,5 @@
 import { test, before, after } from "node:test";
+import { request } from "node:http";
 import assert from "node:assert/strict";
 import { mkdtemp, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -219,4 +220,23 @@ test("a session lasts two months", async () => {
     });
     assert.match(login.headers.getSetCookie()[0], /Max-Age=5184000/);
   } finally { d.srv.close(); }
+});
+
+test("the data folder serves the paper, never the login or the filed editions", async () => {
+  await writeFile(join(dataDir, "almanac.json"), "{}");
+  await writeFile(join(dataDir, "admin.json"), JSON.stringify({ sessionSecret: "do-not-serve" }));
+  for (const path of ["/data/schedule.json", "/data/almanac.json"]) {
+    const res = await fetch(base + path);
+    assert.notEqual(res.status, 404, `${path} is the paper and must be served`);
+  }
+  // Sent byte for byte: fetch() would tidy "../" away before it left.
+  const rawStatus = (path) => new Promise((resolve, reject) => {
+    request(base + "/", { path }, (res) => { res.resume(); resolve(res.statusCode); })
+      .on("error", reject).end();
+  });
+  for (const path of ["/data/admin.json", "/data/versions/x.json", "/data/../admin.json",
+                      "/data/%2e%2e/admin.json", "/data/.env", "/data/crosswords/../admin.json",
+                      "/data/crosswords/%2e%2e/admin.json"]) {
+    assert.equal(await rawStatus(path), 404, `${path} must not be served`);
+  }
 });
