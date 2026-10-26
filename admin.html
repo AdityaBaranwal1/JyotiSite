@@ -47,110 +47,152 @@
           simply head to <a href="index.html">the front page</a>.</p>
       </div>
       <form id="login-form" class="login-form">
-        <label for="login-user">Username</label>
-        <input id="login-user" name="username" autocomplete="username" required>
-        <label for="login-pass">Password</label>
+        <!-- One shared volunteer login: the browser's password manager still
+             wants a username, so it is given one it can fill on its own. -->
+        <input type="text" name="username" autocomplete="username" value="volunteer" hidden>
+        <label for="login-pass">The volunteers' password</label>
         <input id="login-pass" name="password" type="password" autocomplete="current-password" required>
+        <label class="show-pass"><input type="checkbox" id="login-show"> Show the password as I type</label>
         <p class="studio-msg" id="login-msg" role="alert"></p>
         <button type="submit" class="btn">Sign in</button>
+        <p class="byline">You will stay signed in on this computer or phone for two months.
+          Forgotten the password? Ask whoever looks after the website; they can set a new
+          one in a minute.</p>
       </form>
     </main>
 
     <!-- ================= THE DESK ================= -->
     <main id="desk-view" hidden>
-      <div class="section-head">
-        <span class="kicker">The Schedule</span>
-        <h2 id="desk-title">This Week</h2>
-        <hr class="thick-thin">
-        <p class="byline">Click any program to change it, or add a new one. Nothing readers see
-          changes until you press <strong>Publish</strong>.</p>
-      </div>
-
-      <div class="desk-toolbar">
-        <div class="view-toggle" role="group" aria-label="View">
-          <button type="button" class="btn btn--quiet" id="view-week" aria-pressed="true">Week</button>
-          <button type="button" class="btn btn--quiet" id="view-month" aria-pressed="false">Month</button>
+      <!-- Where to start: one button per job, so nobody has to find their way
+           around a long page to do the one thing they came to do. -->
+      <section class="desk-start" aria-labelledby="start-h">
+        <div class="section-head">
+          <span class="kicker">Welcome to the desk</span>
+          <h2 id="start-h">What would you like to do?</h2>
+          <hr class="thick-thin">
         </div>
-        <div class="range-nav">
-          <button type="button" class="btn btn--quiet" id="range-prev" aria-label="Earlier">‹ Earlier</button>
-          <button type="button" class="btn btn--quiet" id="range-today">Today</button>
-          <button type="button" class="btn btn--quiet" id="range-next" aria-label="Later">Later ›</button>
-          <label class="visually-hidden" for="range-jump">Jump to month</label>
-          <input type="month" id="range-jump" aria-label="Jump to a month">
-        </div>
-      </div>
+        <nav class="start-grid" aria-label="Jobs on the desk">
+          <a class="btn start-btn" href="#schedule">Change or cancel a date</a>
+          <a class="btn start-btn" href="#note">Write the note on the front page</a>
+          <a class="btn start-btn" href="#weekly">Change a weekly program</a>
+          <a class="btn start-btn" href="#history">Undo a mistake</a>
+        </nav>
+        <p class="byline">Every change goes on the paper the moment you make it. Nothing you do
+          here is permanent: the <strong>Undo</strong> button at the bottom of the screen takes
+          back your last change, and <a href="#history">Undo a mistake</a> can put back the
+          whole paper as it was.</p>
+      </section>
 
-      <div id="week-panel"></div>
-      <div id="month-panel" hidden></div>
+      <!-- The dates -->
+      <section id="schedule" class="feature" aria-labelledby="desk-title">
+        <div class="section-head">
+          <span class="kicker">The Schedule</span>
+          <h2 id="desk-title">This Week</h2>
+          <hr class="thick-thin">
+          <p class="byline">Press <strong>Change</strong> to alter a program for one date, or
+            <strong>Cancel this date</strong> if it is not happening. To change a program every
+            week, use <a href="#weekly">Weekly Programs</a>.</p>
+        </div>
+
+        <div class="desk-toolbar">
+          <div class="view-toggle" role="group" aria-label="Show">
+            <button type="button" class="btn btn--quiet" id="view-week" aria-pressed="true">A week</button>
+            <button type="button" class="btn btn--quiet" id="view-month" aria-pressed="false">A month</button>
+          </div>
+          <div class="range-nav">
+            <button type="button" class="btn btn--quiet" id="range-prev">‹ Week before</button>
+            <button type="button" class="btn btn--quiet" id="range-today">This week</button>
+            <button type="button" class="btn btn--quiet" id="range-next">Week after ›</button>
+          </div>
+        </div>
+
+        <div id="week-panel"></div>
+        <div id="month-panel" hidden></div>
+      </section>
+
+      <!-- The front-page note -->
+      <section id="note" class="feature" aria-labelledby="note-h">
+        <div class="section-head">
+          <span class="kicker">On the front page</span>
+          <h2 id="note-h">From the Editor</h2>
+          <hr class="thick-thin">
+        </div>
+        <label for="editors-note">The note and shout-outs readers see on the front page</label>
+        <textarea id="editors-note" rows="7"></textarea>
+        <div class="field-save">
+          <button type="button" class="btn" id="note-save">Save the note</button>
+          <span class="field-state" id="note-state" role="status"></span>
+        </div>
+      </section>
 
       <!-- What is normally on -->
-      <section class="feature" aria-labelledby="standing-h">
+      <section id="weekly" class="feature" aria-labelledby="weekly-h">
         <div class="section-head">
           <span class="kicker">The shape of a normal week</span>
-          <h2 id="standing-h">Standing Programs</h2>
+          <h2 id="weekly-h">Weekly Programs</h2>
           <hr class="thick-thin">
-          <p class="byline">These run every week on their own. You do not need to enter them —
-            change a single date from the week or month outlook above, and only that date
-            changes.</p>
+          <p class="byline">These go on the paper every week until you stop them. A change here
+            starts today and carries on every week after; weeks already past stay as they
+            were.</p>
         </div>
-        <div id="standing-list"></div>
+        <div id="weekly-list"></div>
+        <button type="button" class="btn btn--quiet desk-add" id="weekly-add">+ Add a weekly program</button>
       </section>
 
-      <!-- Settings -->
-      <section class="feature" aria-labelledby="settings-h">
+      <!-- The usual Zoom room -->
+      <section id="zoom" class="feature" aria-labelledby="zoom-h">
         <div class="section-head">
-          <span class="kicker">The Usual Zoom Room</span>
-          <h2 id="settings-h">Settings</h2>
+          <span class="kicker">The usual Zoom room</span>
+          <h2 id="zoom-h">The Zoom Link</h2>
           <hr class="thick-thin">
         </div>
-        <div class="settings-grid">
-          <div>
-            <label for="default-zoom">Default Zoom link (programs marked “usual room” use this)</label>
-            <input id="default-zoom" type="url" placeholder="https://zoom.us/j/...">
-            <p class="byline">Change it once here and every program that uses the usual room
-              follows along.</p>
-          </div>
-          <div>
-            <label for="editors-note">From the Editor (the note and shout-outs on the front page)</label>
-            <textarea id="editors-note" rows="6"></textarea>
-          </div>
+        <label for="default-zoom">The link for programs held in the usual Zoom room</label>
+        <input id="default-zoom" type="url" placeholder="https://zoom.us/j/...">
+        <p class="byline">Change it once here and every program in the usual room follows along.</p>
+        <div class="field-save">
+          <button type="button" class="btn" id="zoom-save">Save the link</button>
+          <span class="field-state" id="zoom-state" role="status"></span>
         </div>
       </section>
 
-      <!-- Previous editions -->
-      <section class="feature" aria-labelledby="editions-h">
+      <!-- Earlier versions -->
+      <section id="history" class="feature" aria-labelledby="history-h">
         <div class="section-head">
           <span class="kicker">If something goes wrong</span>
-          <h2 id="editions-h">Previous Editions</h2>
+          <h2 id="history-h">Undo a Mistake</h2>
           <hr class="thick-thin">
-          <p class="byline">Every time you publish, the paper you replaced is kept here. Putting
-            one back is safe — the paper you are replacing now gets kept too.</p>
+          <p class="byline">Each time someone sits down to make changes, the paper as it was
+            before is kept here. Putting one back is safe: the paper as it is now is kept too,
+            so you can always change your mind.</p>
         </div>
         <div id="editions-list"></div>
       </section>
 
-      <!-- Publish bar -->
-      <div class="publish-bar">
-        <button type="button" class="btn btn--quiet" id="preview">See how it will look</button>
-        <button type="button" class="btn" id="publish">Publish changes</button>
-        <span class="game-status" id="publish-status" role="status" aria-live="polite"></span>
+      <!-- Always on screen: what just happened, and the way back. -->
+      <div class="save-bar">
+        <span class="save-status" id="save-status" role="status" aria-live="polite">Changes go on
+          the paper straight away.</span>
+        <span class="save-actions">
+          <button type="button" class="btn" id="undo" hidden>Undo</button>
+          <button type="button" class="btn btn--quiet" id="preview">See the paper</button>
+        </span>
       </div>
     </main>
 
-    <!-- ================= PREVIEW ================= -->
+    <!-- ================= THE PAPER, AS READERS SEE IT ================= -->
     <dialog id="preview-dialog" class="preview-dialog">
       <div class="preview-head">
-        <h2 id="preview-title">How it will look</h2>
-        <div class="view-toggle" role="group" aria-label="Which page to preview">
+        <h2 id="preview-title">The paper, as readers see it</h2>
+        <div class="view-toggle" role="group" aria-label="Which page to show">
           <button type="button" class="btn btn--quiet" id="preview-front" aria-pressed="true">Front page</button>
           <button type="button" class="btn btn--quiet" id="preview-month" aria-pressed="false">The month</button>
         </div>
-        <button type="button" class="btn btn--quiet" id="preview-close">Close preview</button>
+        <button type="button" class="btn" id="preview-close">Back to the desk</button>
       </div>
-      <iframe id="preview-frame" title="Preview of the paper"></iframe>
+      <iframe id="preview-frame" title="The paper as readers see it"></iframe>
     </dialog>
 
-    <!-- ================= DAY EDITOR (from the month outlook) ================= -->
+    <!-- ================= ONE DAY (from the month view) ================= -->
     <dialog id="day-dialog" class="event-dialog">
       <h2 id="day-dialog-title">Programs</h2>
       <hr class="thick-thin">
@@ -161,26 +203,45 @@
       </div>
     </dialog>
 
-    <!-- ================= EVENT EDITOR ================= -->
+    <!-- ================= PROGRAM EDITOR =================
+         One form for both jobs: a program on one date, and a weekly program.
+         js/admin.js shows the date or the weekday, and the actions that fit. -->
     <dialog id="event-dialog" class="event-dialog">
-      <form method="dialog" id="event-form">
-        <h2 id="event-dialog-title">Edit program</h2>
+      <!-- novalidate: js/admin.js checks the fields itself, in plain words, and
+           the browser would otherwise refuse to save over a hidden date box. -->
+      <form method="dialog" id="event-form" novalidate>
+        <h2 id="event-dialog-title">Change a program</h2>
         <hr class="thick-thin">
-        <p class="standing-banner" id="ev-standing" hidden>
-          <span class="kicker">This week only</span>
-          <span id="ev-standing-text"></span>
-        </p>
+        <div class="standing-banner" id="ev-banner" hidden>
+          <p id="ev-banner-text"></p>
+          <button type="button" class="btn btn--quiet" id="ev-switch" hidden></button>
+        </div>
         <div class="field-grid">
           <div class="field span2">
             <label for="ev-title">Program name</label>
             <input id="ev-title" required maxlength="120">
           </div>
-          <div class="field">
+          <div class="field span2" id="f-date">
             <label for="ev-date">Date</label>
             <input id="ev-date" type="date" required>
-            <span class="field-note" id="ev-date-note" hidden>Set by the standing program</span>
+          </div>
+          <div class="field span2" id="f-day" hidden>
+            <label for="ev-day">Which day of the week</label>
+            <select id="ev-day"></select>
+            <p class="field-note" id="ev-day-text" hidden></p>
           </div>
           <div class="field">
+            <label for="ev-start">Starts at</label>
+            <select id="ev-start"></select>
+          </div>
+          <div class="field">
+            <label for="ev-end">Ends at</label>
+            <select id="ev-end"></select>
+          </div>
+          <details class="field span2 more-options" id="ev-more">
+            <summary>More options <span id="ev-more-hint"></span></summary>
+            <label for="ev-desc">One friendly line about it</label>
+            <input id="ev-desc" maxlength="200">
             <label for="ev-category">Kind of program</label>
             <select id="ev-category">
               <option value="yoga">Yoga / exercise</option>
@@ -194,40 +255,26 @@
               <option value="social">Social hour</option>
               <option value="">Something else</option>
             </select>
-          </div>
-          <div class="field">
-            <label for="ev-start">Starts</label>
-            <input id="ev-start" type="time" required>
-          </div>
-          <div class="field">
-            <label for="ev-end">Ends (optional)</label>
-            <input id="ev-end" type="time">
-          </div>
-          <div class="field span2">
-            <label for="ev-desc">One friendly line about it (optional)</label>
-            <input id="ev-desc" maxlength="200">
-          </div>
-          <fieldset class="field span2">
-            <legend>How do people join?</legend>
-            <label class="radio-row"><input type="radio" name="ev-zoom" value="default" checked>
-              The usual Zoom room</label>
-            <label class="radio-row"><input type="radio" name="ev-zoom" value="custom">
-              A special Zoom link:</label>
-            <input id="ev-zoom-url" type="url" placeholder="https://zoom.us/j/..." aria-label="Special Zoom link">
-            <label class="radio-row"><input type="radio" name="ev-zoom" value="phone">
-              No Zoom, they call us to register</label>
-          </fieldset>
-          <div class="field span2 check-row">
-            <label><input type="checkbox" id="ev-new"> Stamp it NEW</label>
-            <label><input type="checkbox" id="ev-cancelled"> Cancelled (stays listed, clearly stamped)</label>
-          </div>
+            <fieldset>
+              <legend>How do people join?</legend>
+              <label class="radio-row"><input type="radio" name="ev-zoom" value="default" checked>
+                The usual Zoom room</label>
+              <label class="radio-row"><input type="radio" name="ev-zoom" value="custom">
+                A special Zoom link:</label>
+              <input id="ev-zoom-url" type="url" placeholder="https://zoom.us/j/..." aria-label="Special Zoom link">
+              <label class="radio-row"><input type="radio" name="ev-zoom" value="phone">
+                No Zoom, they call us to register</label>
+            </fieldset>
+            <label class="radio-row" id="f-new"><input type="checkbox" id="ev-new"> Stamp it NEW</label>
+          </details>
         </div>
         <p class="studio-msg" id="event-msg" role="alert"></p>
         <div class="dialog-actions">
-          <button type="button" class="btn" id="ev-save">Save program</button>
+          <button type="submit" class="btn" id="ev-save">Save</button>
           <button type="button" class="btn btn--quiet" id="ev-cancel">Never mind</button>
-          <button type="button" class="btn btn--quiet" id="ev-reset" hidden>Use the usual again</button>
-          <button type="button" class="btn btn--quiet btn--danger" id="ev-delete" hidden>Remove program</button>
+          <button type="button" class="btn btn--quiet" id="ev-reset" hidden>Go back to the usual</button>
+          <button type="button" class="btn btn--quiet btn--danger" id="ev-delete" hidden>Delete this program</button>
+          <button type="button" class="btn btn--quiet btn--danger" id="ev-stop" hidden>Stop this program</button>
         </div>
       </form>
     </dialog>

@@ -5,11 +5,13 @@
 import express from "express";
 import { readFile, writeFile, rename, readdir, mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { randomBytes } from "node:crypto";
 import { normalizeSchedule } from "../js/data-adapter.js";
 import { verifyPassword, issueToken, verifyToken, makeRateLimiter } from "./auth.mjs";
 
 const COOKIE = "jyoti_session";
+/* Volunteers stay signed in for two months on their own device: a password
+   asked for every week is a password written on a sticky note. */
+const SESSION_MS = 60 * 24 * 60 * 60 * 1000;
 
 export function createApp({
   root,
@@ -18,6 +20,7 @@ export function createApp({
   loginWindowMs = 15 * 60 * 1000,
   loginMax = 10,
   keepVersions = 12,
+  sittingMs = 15 * 60 * 1000,   // saves this close together are one sitting
 } = {}) {
   const app = express();
   app.disable("x-powered-by");
@@ -32,10 +35,20 @@ export function createApp({
      a mistake can put last week's paper back without needing a developer. */
   const VERSION_FILE = /^schedule-[0-9TZ.\-]+\.json$/;
 
-  async function archiveCurrent() {
+  /* The desk saves every change the moment it is made, so a morning's work
+     is many saves. Filing each one would bury the version a volunteer
+     actually wants back ("how it was before I sat down") under a dozen
+     near-copies. Within a sitting, the paper from before it is already on
+     file and the save is not filed again. A restore always files. */
+  async function archiveCurrent({ sitting = false } = {}) {
     let current;
     try { current = await readFile(schedulePath, "utf8"); }
     catch { return null; }                      // nothing published yet
+    if (sitting) {
+      let savedAt = NaN;
+      try { savedAt = Date.parse(JSON.parse(current).savedAt); } catch { /* file it */ }
+      if (Date.now() - savedAt < sittingMs) return null;
+    }
     await mkdir(versionsDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const name = `schedule-${stamp}.json`;
@@ -54,17 +67,6 @@ export function createApp({
     await writeFile(tmp, text);
     await rename(tmp, schedulePath);
   }
-
-  /* ---------- draft previews ----------
-     Held in memory against the volunteer's own session, never written to disk:
-     a preview is not a publish, and must not survive a restart as one. */
-  const drafts = new Map();
-  const DRAFT_TTL = 30 * 60 * 1000;
-  const draftKey = (req) => readCookie(req) ?? "";
-  const sweepDrafts = () => {
-    const cutoff = Date.now() - DRAFT_TTL;
-    for (const [k, v] of drafts) if (v.at < cutoff) drafts.delete(k);
-  };
 
   /* ---------- session helpers ---------- */
   const readCookie = (req) => {
@@ -85,17 +87,18 @@ export function createApp({
     if (!allowLogin(key)) {
       return res.status(429).json({ error: "Too many tries. Please wait a few minutes and try again." });
     }
-    const { username, password } = req.body ?? {};
-    const userOk = String(username ?? "") === String(credentials?.username ?? randomBytes(8).toString("hex"));
+    /* One shared volunteer login, so the desk asks only for the password: a
+       username everyone types the same adds a box to fill and nothing else. */
+    const { password } = req.body ?? {};
     const passOk = await verifyPassword(String(password ?? ""), credentials ?? {});
-    if (!userOk || !passOk) {
-      return res.status(401).json({ error: "That username and password don't match our records." });
+    if (!passOk) {
+      return res.status(401).json({ error: "That password isn't right. Please check it and try again." });
     }
-    const token = issueToken(credentials.sessionSecret);
+    const token = issueToken(credentials.sessionSecret, SESSION_MS);
     const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
     res.setHeader(
       "Set-Cookie",
-      `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}${secure ? "; Secure" : ""}`
+      `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MS / 1000}${secure ? "; Secure" : ""}`
     );
     res.json({ ok: true });
   });
@@ -156,7 +159,7 @@ export function createApp({
     // sanity: it must normalize without throwing
     const normalized = normalizeSchedule(toSave);
     try {
-      await archiveCurrent();     // file the edition this one replaces
+      await archiveCurrent({ sitting: true });   // file the paper this one replaces
       await writeSchedule(JSON.stringify(toSave, null, 2) + "\n");
       res.json({ ok: true, savedAt: toSave.savedAt, kept: cleanEvents.length, normalizedEvents: normalized.events.length });
     } catch {
@@ -208,24 +211,6 @@ export function createApp({
         error: missing ? "That edition is no longer on file." : "That edition could not be restored.",
       });
     }
-  });
-
-  /* ---------- draft preview ---------- */
-  app.post("/api/schedule/preview", requireSession, (req, res) => {
-    sweepDrafts();
-    const body = req.body;
-    if (!body || typeof body !== "object") {
-      return res.status(400).json({ error: "That doesn't look like a schedule." });
-    }
-    drafts.set(draftKey(req), { schedule: normalizeSchedule(body), at: Date.now() });
-    res.json({ ok: true });
-  });
-
-  app.get("/api/schedule/preview", requireSession, (req, res) => {
-    sweepDrafts();
-    const held = drafts.get(draftKey(req));
-    if (!held) return res.status(404).json({ error: "There is no draft to preview." });
-    res.json(held.schedule);
   });
 
   /* ---------- pages & static ---------- */

@@ -165,3 +165,58 @@ test("GET /admin serves the admin page", async () => {
   assert.equal(res.status, 200);
   assert.match(await res.text(), /Editor/i);
 });
+
+/* ---------- editions: one per sitting ---------- */
+
+async function freshDesk(opts) {
+  const dir = await mkdtemp(join(tmpdir(), "jyoti-ed-"));
+  await writeFile(join(dir, "schedule.json"), JSON.stringify({
+    savedAt: "2026-01-01T00:00:00.000Z", editorsNote: "first", events: [],
+  }));
+  const credentials = { username: "volunteer", ...(await hashPassword("pw-12345678")), sessionSecret: "s" };
+  const app = createApp({ root: siteRoot, dataDir: dir, credentials, ...opts });
+  const srv = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
+  const url = `http://127.0.0.1:${srv.address().port}`;
+  const login = await fetch(url + "/api/login", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password: "pw-12345678" }),
+  });
+  assert.equal(login.status, 200, "the password alone signs a volunteer in");
+  const cookie = login.headers.getSetCookie().join("; ");
+  const save = (note) => fetch(url + "/api/schedule", {
+    method: "PUT", headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({ editorsNote: note, events: [] }),
+  });
+  const editions = async () =>
+    (await (await fetch(url + "/api/versions", { headers: { cookie } })).json()).editions;
+  return { srv, save, editions, url, cookie };
+}
+
+test("saves in one sitting file the paper from before it only once", async () => {
+  const d = await freshDesk();
+  try {
+    for (const n of [1, 2, 3, 4]) assert.equal((await d.save(`note ${n}`)).status, 200);
+    const eds = await d.editions();
+    assert.equal(eds.length, 1, "four quick saves are one sitting");
+    assert.equal(eds[0].savedAt, "2026-01-01T00:00:00.000Z", "and the filed paper is the one from before it");
+  } finally { d.srv.close(); }
+});
+
+test("a sitting ends after the quiet gap, and only the last 12 are kept", async () => {
+  const d = await freshDesk({ sittingMs: 0 });
+  try {
+    for (let n = 0; n < 14; n++) await d.save(`note ${n}`);
+    assert.equal((await d.editions()).length, 12);
+  } finally { d.srv.close(); }
+});
+
+test("a session lasts two months", async () => {
+  const d = await freshDesk();
+  try {
+    const login = await fetch(d.url + "/api/login", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "pw-12345678" }),
+    });
+    assert.match(login.headers.getSetCookie()[0], /Max-Age=5184000/);
+  } finally { d.srv.close(); }
+});

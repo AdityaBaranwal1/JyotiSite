@@ -11,3 +11,4 @@ test-results/
 playwright-report/
 .tmp-test-data/
 data/versions/
+.tmp-try-data/

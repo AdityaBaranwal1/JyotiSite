@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 import { readFile, writeFile } from "node:fs/promises";
 
 /* These drive the real desk against the real schedule file, so each test puts
-   the file back the way it found it. */
+   the file back the way it found it. Every change on the desk is saved the
+   moment it is made, so a test waits for the save bar to say so, then reads
+   the file. */
 const SCHEDULE = ".tmp-test-data/schedule.json";   // the disposable copy, never the real paper
 let original;
 
@@ -10,111 +12,254 @@ test.beforeAll(async () => { original = await readFile(SCHEDULE, "utf8"); });
 test.afterEach(async () => { await writeFile(SCHEDULE, original); });
 
 const signIn = async (page) => {
-  await page.clock.setFixedTime(new Date("2026-09-19T15:30:00-04:00"));
+  await page.clock.setFixedTime(new Date("2026-09-19T15:30:00-04:00"));   // a Saturday
   await page.goto("/admin");
-  await page.fill("#login-user", "volunteer");
   await page.fill("#login-pass", "localdevpassword");
   await page.click("#login-form button[type=submit]");
   await page.waitForSelector("#desk-view:not([hidden])");
 };
+const saved = (page, text = "Readers see it now") =>
+  expect(page.locator("#save-status")).toContainText(text);
 
 const readSchedule = async () => JSON.parse(await readFile(SCHEDULE, "utf8"));
 const exceptionFor = (s, id, date) =>
   (s.exceptions ?? []).find((x) => x.seriesId === id && x.date === date);
+const rowFor = (page, t) => page.locator(".desk-event").filter({ hasText: t }).first();
+const weeklyRow = (page, t) => page.locator(".standing-def").filter({ hasText: t }).first();
 
-test("the week shows the standing programs, not an empty page", async ({ page }) => {
+/* ---------------- signing in ---------------- */
+
+test("signing in asks only for the password, and can show it", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page.locator("#login-view input:visible")).toHaveCount(2);   // the password and "show it"
+  await page.fill("#login-pass", "localdevpassword");
+  await page.check("#login-show");
+  await expect(page.locator("#login-pass")).toHaveAttribute("type", "text");
+  await page.click("#login-form button[type=submit]");
+  await expect(page.locator("#desk-view")).toBeVisible();
+});
+
+test("a wrong password says so plainly", async ({ page }) => {
+  await page.goto("/admin");
+  await page.fill("#login-pass", "not-the-password");
+  await page.click("#login-form button[type=submit]");
+  await expect(page.locator("#login-msg")).toContainText("password isn't right");
+});
+
+/* ---------------- one date ---------------- */
+
+test("the week shows the weekly programs, not an empty page", async ({ page }) => {
   await signIn(page);
   await expect(page.locator(".desk-event")).toHaveCount(8);
   await expect(page.locator(".desk-event").first()).toContainText("Yoga & Guided Meditation");
   await expect(page.locator(".desk-event").first()).toContainText("Every Monday");
 });
 
-test("names what is normally on", async ({ page }) => {
+test("cancelling a date saves at once, as a change for that date only", async ({ page }) => {
   await signIn(page);
-  await expect(page.locator(".standing-def")).toHaveCount(8);
-  await expect(page.locator(".standing-def").first()).toContainText("Every Monday");
-});
-
-test("calling off one week writes an exception, not a deletion", async ({ page }) => {
-  await signIn(page);
-  const monday = page.locator(".desk-event").filter({ hasText: "Yoga & Guided Meditation" }).first();
-  await monday.getByRole("button", { name: /Call off/ }).click();
+  const monday = rowFor(page, "Yoga & Guided Meditation");
+  await monday.getByRole("button", { name: /Cancel Yoga/ }).click();
   await expect(monday).toContainText("Cancelled");
-
-  await page.click("#publish");
-  await expect(page.locator("#publish-status")).toContainText("Published");
+  await saved(page);
 
   const s = await readSchedule();
-  expect(s.series, "the series must still be there").toHaveLength(8);
+  expect(s.series, "the weekly program must still be there").toHaveLength(8);
   expect(exceptionFor(s, "yoga", "2026-09-14")).toMatchObject({ cancelled: true });
 });
 
-test("a cancelled week can be put back, leaving no trace", async ({ page }) => {
+test("a cancelled date stays on the reader's month, stamped", async ({ page }) => {
   await signIn(page);
-  const monday = page.locator(".desk-event").filter({ hasText: "Yoga & Guided Meditation" }).first();
-  await monday.getByRole("button", { name: /Call off/ }).click();
-  await monday.getByRole("button", { name: /Restore/ }).click();
-  await expect(monday).not.toContainText("Cancelled");
+  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Cancel Yoga/ }).click();
+  await saved(page);
+  await page.goto("/month.html?m=2026-09");
+  await page.waitForFunction(() => document.querySelectorAll(".tt-day").length > 0);
+  const sep14 = page.locator(".tt-day").filter({ hasText: "14" }).first();
+  await expect(sep14.locator(".tt-entry.is-cancelled")).toHaveCount(1);
+});
 
-  await page.click("#publish");
-  await expect(page.locator("#publish-status")).toContainText("Published");
+test("a cancelled date can be put back, leaving no trace", async ({ page }) => {
+  await signIn(page);
+  const monday = rowFor(page, "Yoga & Guided Meditation");
+  await monday.getByRole("button", { name: /Cancel Yoga/ }).click();
+  await saved(page);
+  await monday.getByRole("button", { name: /Put Yoga .* back on/ }).click();
+  await expect(monday).not.toContainText("Cancelled");
+  await saved(page, "back on");
+
   const s = await readSchedule();
-  expect(exceptionFor(s, "yoga", "2026-09-14"), "the exception should be gone entirely").toBeUndefined();
+  expect(exceptionFor(s, "yoga", "2026-09-14"), "the change should be gone entirely").toBeUndefined();
+});
+
+test("Undo takes back the last change", async ({ page }) => {
+  await signIn(page);
+  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Cancel Yoga/ }).click();
+  await saved(page);
+  await page.click("#undo");
+  await saved(page, "undone");
+  await expect(page.locator("#undo")).toBeHidden();
+  await expect(rowFor(page, "Yoga & Guided Meditation")).not.toContainText("Cancelled");
+  expect(exceptionFor(await readSchedule(), "yoga", "2026-09-14")).toBeUndefined();
 });
 
 test("changing one week's topic records only what differs", async ({ page }) => {
   await signIn(page);
-  const wed = page.locator(".desk-event").filter({ hasText: "Rangoli" }).first();
-  await wed.getByRole("button", { name: /Edit/ }).click();
+  await rowFor(page, "Rangoli").getByRole("button", { name: /Change/ }).click();
 
-  await expect(page.locator("#ev-standing")).toBeVisible();
-  await expect(page.locator("#ev-standing")).toContainText("September 16 only");
-  await expect(page.locator("#ev-date")).toHaveAttribute("readonly", "");
+  await expect(page.locator("#ev-banner")).toContainText("September 16 only");
+  await expect(page.locator("#f-date"), "a weekly program's date cannot move").toBeHidden();
 
   await page.fill("#ev-title", "Art: Paper Lanterns");
   await page.click("#ev-save");
-  // The row is re-rendered under its new name, so look it up again.
-  await expect(page.locator(".desk-event").filter({ hasText: "Art: Paper Lanterns" }))
-    .toHaveCount(1);
-  await expect(page.locator(".desk-event").filter({ hasText: "Art: Paper Lanterns" }))
-    .toContainText("Changed this week");
+  await expect(rowFor(page, "Art: Paper Lanterns")).toContainText("Changed this week");
+  await saved(page);
 
-  await page.click("#publish");
-  await expect(page.locator("#publish-status")).toContainText("Published");
-  const s = await readSchedule();
-  const ex = exceptionFor(s, "art", "2026-09-16");
+  const ex = exceptionFor(await readSchedule(), "art", "2026-09-16");
   expect(ex.title).toBe("Art: Paper Lanterns");
-  // The hour never changed, so the exception must not pin one.
-  expect(ex.startTime, "unchanged fields stay with the series").toBeUndefined();
+  // The hour never changed, so the change must not pin one.
+  expect(ex.startTime, "unchanged details stay with the weekly program").toBeUndefined();
 });
 
-test("taking a date off removes it from the reader's month", async ({ page }) => {
+test("pressing Enter in the name box saves instead of losing the change", async ({ page }) => {
   await signIn(page);
-  const monday = page.locator(".desk-event").filter({ hasText: "Yoga & Guided Meditation" }).first();
-  await monday.getByRole("button", { name: /Edit/ }).click();
-  page.once("dialog", (d) => d.accept());
-  await page.click("#ev-delete");
-  await expect(page.locator(".desk-event").filter({ hasText: "Yoga" }).first()).toContainText("Off this week");
-
-  await page.click("#publish");
-  await expect(page.locator("#publish-status")).toContainText("Published");
-
-  await page.goto("/month.html?m=2026-09");
-  await page.waitForFunction(() => document.querySelectorAll(".tt-day").length > 0);
-  const sep14 = page.locator(".tt-day").filter({ hasText: "14" }).first();
-  await expect(sep14).not.toContainText("Yoga");
+  await page.locator(".desk-add").first().click();
+  await page.fill("#ev-title", "Diwali Lamps Workshop");
+  await page.press("#ev-title", "Enter");
+  await saved(page);
+  const s = await readSchedule();
+  expect(s.events.some((e) => e.title === "Diwali Lamps Workshop" && e.date === "2026-09-14")).toBe(true);
 });
 
-test("the stock-market talk keeps its category through an edit", async ({ page }) => {
+test("the stock-market talk keeps its category through a change", async ({ page }) => {
   await signIn(page);
   await page.locator("#range-prev").click();      // week of Sept 7 has an ordinary Thursday
-  const thu = page.locator(".desk-event").filter({ hasText: "Understanding the Stock Market" }).first();
-  await thu.getByRole("button", { name: /Edit/ }).click();
+  await rowFor(page, "Understanding the Stock Market").getByRole("button", { name: /Change/ }).click();
   await expect(page.locator("#ev-category")).toHaveValue("stock market");
   await page.click("#ev-save");
-
-  await page.click("#publish");
-  const s = await readSchedule();
-  const ex = exceptionFor(s, "stocks", "2026-09-10");
+  await saved(page);
+  const ex = exceptionFor(await readSchedule(), "stocks", "2026-09-10");
   expect(ex?.category, "saving an unchanged category must not record a blank one").toBeUndefined();
+});
+
+test("times are picked from a plain list", async ({ page }) => {
+  await signIn(page);
+  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Change/ }).click();
+  await expect(page.locator("#ev-start")).toHaveValue("10:00");
+  await expect(page.locator("#ev-start option:checked")).toHaveText("10:00 AM");
+  await expect(page.locator("#ev-end option").first()).toHaveText("No end time");
+});
+
+test("a save that fails puts the desk back and says nothing changed", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/schedule", (route) =>
+    route.request().method() === "PUT" ? route.abort() : route.continue());
+  const monday = rowFor(page, "Yoga & Guided Meditation");
+  await monday.getByRole("button", { name: /Cancel Yoga/ }).click();
+  await saved(page, "nothing was changed");
+  await expect(monday).not.toContainText("Cancelled");
+  await expect(page.locator("#undo")).toBeHidden();
+});
+
+/* ---------------- weekly programs ---------------- */
+
+test("names what is normally on, each with a Change button", async ({ page }) => {
+  await signIn(page);
+  await expect(page.locator(".standing-def")).toHaveCount(8);
+  await expect(page.locator(".standing-def").first()).toContainText("Every Monday");
+  await expect(page.locator(".standing-def .sd-change")).toHaveCount(8);
+});
+
+test("changing a weekly program's hour starts today and leaves past weeks alone", async ({ page }) => {
+  await signIn(page);
+  await weeklyRow(page, "Yoga").getByRole("button", { name: /Change/ }).click();
+  await expect(page.locator("#f-day")).toBeVisible();
+  await expect(page.locator("#ev-day")).toHaveValue("MO");
+  await page.selectOption("#ev-start", "11:00");
+  await page.selectOption("#ev-end", "12:00");
+  await page.click("#ev-save");
+  await saved(page, "changed from today on");
+
+  const s = await readSchedule();
+  const yoga = s.series.filter((x) => x.title === "Yoga & Guided Meditation");
+  expect(yoga).toHaveLength(2);
+  expect(yoga[0]).toMatchObject({ id: "yoga", startTime: "10:00", until: "2026-09-18" });
+  expect(yoga[1]).toMatchObject({ from: "2026-09-19", startTime: "11:00", endTime: "12:00" });
+  expect(yoga[1].until, "a weekly program runs until it is stopped").toBeUndefined();
+
+  // The desk still lists it once, at the new hour.
+  await expect(page.locator(".standing-def").filter({ hasText: "Yoga" })).toHaveCount(1);
+  await expect(weeklyRow(page, "Yoga")).toContainText("11:00 AM to 12:00 PM");
+
+  // Readers: last Monday as it was, next Monday at the new hour.
+  await page.goto("/month.html?m=2026-09");
+  await page.waitForFunction(() => document.querySelectorAll(".tt-day").length > 0);
+  const yogaOn = (day) => page.locator(".tt-day").filter({ hasText: day }).first()
+    .locator(".tt-entry").filter({ hasText: "Yoga" }).locator(".tt-time");
+  await expect(yogaOn("14")).toHaveText("10 AM");
+  await expect(yogaOn("21")).toHaveText("11 AM");
+});
+
+test("moving a weekly program to another day asks before dropping hand changes", async ({ page }) => {
+  await signIn(page);
+  await weeklyRow(page, "Health Talk").getByRole("button", { name: /Change/ }).click();
+  await page.selectOption("#ev-day", "SU");
+  let asked = "";
+  page.once("dialog", (d) => { asked = d.message(); d.accept(); });
+  await page.click("#ev-save");
+  await saved(page, "now every Sunday");
+  expect(asked).toContain("the 7 dates");
+  const s = await readSchedule();
+  const moved = s.series.find((x) => x.title === "Health Talk" && x.from === "2026-09-19");
+  expect(moved.rrule).toBe("FREQ=WEEKLY;BYDAY=SU");
+  expect(s.exceptions.filter((x) => x.date >= "2026-09-19" && x.seriesId.startsWith("health"))).toHaveLength(0);
+});
+
+test("stopping a weekly program keeps the weeks it ran", async ({ page }) => {
+  await signIn(page);
+  await weeklyRow(page, "Health Talk").getByRole("button", { name: /Change/ }).click();
+  page.once("dialog", (d) => d.accept());
+  await page.click("#ev-stop");
+  await saved(page, "stopped");
+  await expect(page.locator(".standing-def")).toHaveCount(7);
+
+  const s = await readSchedule();
+  expect(s.series.find((x) => x.id === "health").until).toBe("2026-09-18");
+  expect(exceptionFor(s, "health", "2026-09-12"), "a printed week keeps its topic").toBeDefined();
+});
+
+test("adding a weekly program puts it on every week from today", async ({ page }) => {
+  await signIn(page);
+  await page.click("#weekly-add");
+  await page.fill("#ev-title", "Gardening Club");
+  await page.selectOption("#ev-day", "TH");
+  await page.selectOption("#ev-start", "14:00");
+  await page.click("#ev-save");
+  await saved(page, "every Thursday from today");
+
+  const s = await readSchedule();
+  const added = s.series.find((x) => x.title === "Gardening Club");
+  expect(added).toMatchObject({ rrule: "FREQ=WEEKLY;BYDAY=TH", from: "2026-09-19", startTime: "14:00" });
+  expect(added.until).toBeUndefined();
+
+  await page.locator("#range-next").click();
+  await expect(rowFor(page, "Gardening Club")).toContainText("Every Thursday");
+});
+
+test("from a date, the editor offers to change every week instead", async ({ page }) => {
+  await signIn(page);
+  await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Change/ }).click();
+  await page.click("#ev-switch");
+  await expect(page.locator("#event-dialog-title")).toHaveText("Change a weekly program");
+  await expect(page.locator("#ev-stop")).toBeVisible();
+});
+
+/* ---------------- the note ---------------- */
+
+test("the front-page note saves on its button", async ({ page }) => {
+  await signIn(page);
+  await page.click("a[href='#note']");
+  await page.fill("#editors-note", "Happy Diwali, everyone.");
+  await expect(page.locator("#note-state")).toHaveText("Not saved yet.");
+  await page.click("#note-save");
+  await expect(page.locator("#note-state")).toHaveText("Saved.");
+  expect((await readSchedule()).editorsNote).toBe("Happy Diwali, everyone.");
 });

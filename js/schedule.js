@@ -47,7 +47,7 @@ function weekBounds(now) {
   return { monday: startOfWeek(now, MON), sunday: endOfWeek(now, MON) };
 }
 
-const isoOf = (d) => format(d, "yyyy-MM-dd");
+export const isoOf = (d) => format(d, "yyyy-MM-dd");
 
 export function weekLabelFor(now = new Date()) {
   const { monday, sunday } = weekBounds(now);

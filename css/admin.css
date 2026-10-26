@@ -8,7 +8,7 @@
   font-weight: 700;
   margin: 14px 0 6px;
 }
-#desk-view input, #desk-view textarea, #login-view input,
+#desk-view input, #desk-view textarea, #login-view input:not([type="checkbox"]),
 .event-dialog input:not([type="radio"]):not([type="checkbox"]),
 .event-dialog select {
   width: 100%;
@@ -22,8 +22,39 @@
 #desk-view textarea { line-height: 1.5; }
 
 /* ---------- login ---------- */
-.login-view .login-form { max-width: 420px; }
+.login-view .login-form { max-width: 460px; }
 .login-view .btn { margin-top: 18px; }
+#login-view .show-pass {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+  min-height: 48px;
+  margin: 8px 0 0;
+}
+#login-view .show-pass input { width: 26px; height: 26px; accent-color: var(--accent); }
+.login-view .login-form .byline { margin-top: 22px; }
+
+/* ---------- where to start ---------- */
+.start-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 14px;
+  margin: 6px 0 18px;
+}
+.start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76px;
+  padding: 12px 18px;
+  text-align: center;
+  text-decoration: none;
+  font-size: max(18px, var(--text-size));
+  line-height: 1.3;
+}
+/* Jumping to a section should not tuck its heading under the top edge. */
+#desk-view section[id] { scroll-margin-top: 16px; }
 
 /* ---------- desk toolbar ---------- */
 .desk-toolbar {
@@ -36,14 +67,6 @@
 }
 .view-toggle, .range-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .view-toggle .btn[aria-pressed="true"] { background: var(--accent); }
-.range-nav input[type="month"] {
-  min-height: 48px;
-  border: 2px solid var(--ink);
-  background: var(--panel);
-  padding: 0 10px;
-  font-size: max(17px, calc(var(--text-size) * 0.9));
-  font-family: var(--font-body);
-}
 
 /* ---------- week panel: a day-by-day ledger ---------- */
 .desk-day { margin-top: 20px; }
@@ -156,28 +179,44 @@
   .cal-cell .cal-dots { font-size: 10px; letter-spacing: 2px; color: var(--accent); overflow: hidden; }
 }
 
-/* ---------- settings + publish ---------- */
-.settings-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px 40px;
-  max-width: 980px;
+/* ---------- the note and the Zoom link ---------- */
+#note textarea, #zoom input { max-width: 760px; }
+.field-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 14px;
 }
-@media (min-width: 880px) { .settings-grid { grid-template-columns: 1fr 1fr; } }
+.field-state { font-family: var(--font-body); font-weight: 700; }
 
-.publish-bar {
+/* ---------- the save bar ----------
+   Always on screen: what the last change did, and the way to take it back. */
+.save-bar {
   position: sticky;
   bottom: 0;
+  z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
+  justify-content: space-between;
+  gap: 10px 18px;
   margin-top: 34px;
   padding: 14px 16px;
   background: var(--paper);
   border-top: 3px solid var(--accent);
 }
-.publish-bar .game-status { margin: 0; }
-#publish:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+.save-status {
+  flex: 1 1 18rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: max(17px, var(--text-size));
+}
+.save-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 620px) {
+  .save-bar { padding: 10px 12px; gap: 8px 12px; }
+  .save-bar .btn { min-height: 48px; padding-block: 8px; }
+}
 
 /* ---------- event dialog ---------- */
 /* The form is taller than a laptop screen once a standing program adds its
@@ -230,8 +269,25 @@
   accent-color: var(--accent);
 }
 .event-dialog #ev-zoom-url { margin-left: 36px; width: calc(100% - 36px); }
-.check-row { display: flex; flex-wrap: wrap; gap: 6px 30px; }
-.check-row label { display: flex; align-items: center; gap: 10px; font-weight: 400; }
+
+/* The rarely needed details wait behind one clearly labelled fold. */
+.more-options { margin-top: 18px; border-top: var(--hairline); border-bottom: var(--hairline); }
+.more-options > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 52px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 700;
+  list-style: none;
+}
+.more-options > summary::-webkit-details-marker { display: none; }
+.more-options > summary::before { content: "+"; font-size: 1.3em; width: 1em; }
+.more-options[open] > summary::before { content: "−"; }
+.more-options > summary span { font-weight: 400; }
+.more-options[open] { padding-bottom: 14px; }
 .dialog-actions {
   display: flex;
   flex-wrap: wrap;
@@ -248,24 +304,21 @@
 #day-dialog { padding: 26px 28px; }
 #day-dialog .dialog-actions { padding: 0; margin-top: 22px; border-top: 0; position: static; }
 
-/* A locked field must look locked, or a volunteer will fight it. */
-.event-dialog input[readonly] {
-  background: transparent;
-  border-style: dashed;
-  cursor: not-allowed;
-}
 .btn--danger { border-color: var(--ink); }
 .btn--danger:hover { background: #d9534f; color: #fff; }
 @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
 
-/* ---------- standing programs on the desk ---------- */
+/* ---------- weekly programs on the desk ---------- */
 .standing-def {
   display: grid;
-  grid-template-columns: 13rem 1fr;
-  gap: 2px 16px;
+  grid-template-columns: 13rem 1fr auto;
+  align-items: center;
+  gap: 6px 16px;
   padding: 11px 0;
   border-bottom: var(--hairline);
+  font-size: max(18px, var(--text-size));
 }
+.standing-def .sd-change { min-height: 48px; }
 .standing-def:first-child { border-top: var(--hairline); }
 .sd-when { font-family: var(--font-body); font-weight: 700; }
 .sd-what { font-family: var(--font-head); }
@@ -302,8 +355,11 @@
   font-family: var(--font-body);
   font-size: max(17px, calc(var(--text-size) * 0.85));
 }
+.standing-banner p { margin: 0; }
+.standing-banner .btn { margin-top: 10px; }
 @media (max-width: 620px) {
   .standing-def { grid-template-columns: 1fr; }
+  .standing-def .sd-change { justify-self: start; }
 }
 .field-note {
   display: block;
@@ -345,7 +401,7 @@
 }
 .preview-dialog:not([open]) { display: none; }
 .preview-dialog::backdrop { background: rgba(31, 45, 80, 0.55); }
-/* Room for the sticky publish bar, so the last row of any list can always be
+/* Room for the sticky save bar, so the last row of any list can always be
    scrolled clear of it. */
 #desk-view { padding-bottom: 96px; }
 
