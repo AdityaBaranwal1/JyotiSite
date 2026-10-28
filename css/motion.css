@@ -85,12 +85,6 @@
     animation-duration: 520ms;
     animation-delay: 1180ms;
   }
-  .nameplate .deva::before,
-  .nameplate .deva::after { display: inline-block; }
-  html:not(.jj-pressed) .nameplate .deva::before,
-  html:not(.jj-pressed) .nameplate .deva::after {
-    animation: jj-strike 620ms var(--ease-ink) 1250ms both;
-  }
 
   /* "You are here": the wavy marigold underline is drawn out from the
      middle of the current page's name each time a page opens. */
@@ -175,9 +169,6 @@
 @keyframes jj-pen       { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes jj-rule      { from { scale: 0 1; } }
 @keyframes jj-underline { from { background-size: 0% 9px; } }
-@keyframes jj-strike {
-  from { opacity: 0; scale: 0.2; rotate: -90deg; }
-}
 @keyframes jj-stamp {
   0%   { opacity: 0; scale: 1.5; }
   55%  { opacity: 1; scale: 0.95; }

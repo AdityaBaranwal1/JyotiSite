@@ -94,4 +94,4 @@ Weather is live from the National Weather Service.
 
 ---
 
-*Set with care for the volunteers of Jeevan Jyoti — जीवन ज्योति, “the light of life.”*
+*Set with care for the volunteers of Jeevan Jyoti, “the light of life.”*
