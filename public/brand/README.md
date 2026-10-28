@@ -58,3 +58,13 @@ as wide ovals. To match it, the rebuild applies the same stretch: "Jeevan" is 13
   soft print, and the "y" and "i" of "Jyoti" sit about 3 px off the photo in opposite directions.
 - The flame strokes have an even width. In the print they swell and taper like brush strokes.
 - The flags use official colours and are cleaner than the printed clip-art.
+
+## On the site
+
+- Masthead: `jeevan-jyoti-logo.svg` on the front page, `jeevan-jyoti-logo-no-flags.svg` on
+  every other page and the desk (`.nameplate .logo` in `css/components.css`).
+- Browser tab: `favicon.svg`, with `favicon-32.png` for browsers without SVG icons. It is
+  the torch with strokes about twice as heavy and the two smallest strokes left out, so
+  it still reads at 16 px.
+- Phone home screen: `apple-touch-icon.png` (180 px), the same bold torch on the paper's
+  cream, because iPhones show a transparent icon on black.

@@ -34,7 +34,7 @@
   --ease-pen:  cubic-bezier(0.65, 0, 0.35, 1);
   --dur-touch: 150ms;   /* hover and press feedback */
   --dur-ink:   560ms;   /* content arriving on the page */
-  --dur-pen:   900ms;   /* a rule or flourish being drawn */
+  --dur-pen:   900ms;   /* a rule being drawn */
 }
 
 /* ---------- Reset (small, honest) ---------- */
