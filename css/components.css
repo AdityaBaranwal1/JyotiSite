@@ -56,23 +56,6 @@
   .nameplate { grid-column: 2; }
   .masthead .weather-ear { grid-column: 3; grid-row: 1; }
 }
-.nameplate .deva {
-  font-family: var(--font-deva);
-  font-size: calc(var(--text-size) * 1.15);
-  letter-spacing: 0.25em;
-  display: block;
-  margin-bottom: 2px;
-}
-/* small second-ink diamonds flanking the Devanagari line */
-.nameplate .deva::before,
-.nameplate .deva::after {
-  content: "✦";
-  color: var(--accent);
-  font-size: 0.75em;
-  vertical-align: 12%;
-}
-.nameplate .deva::before { margin-right: 14px; }
-.nameplate .deva::after  { margin-left: 14px; letter-spacing: 0; }
 .nameplate .flourish { color: var(--accent); }
 .nameplate .name {
   font-family: var(--font-head);
@@ -93,7 +76,6 @@
 /* Compact nameplate for inner pages */
 .masthead--compact { padding: 14px 0 8px; }
 .masthead--compact .nameplate .name { font-size: clamp(30px, 5vw, 52px); }
-.masthead--compact .nameplate .deva { font-size: var(--text-size); }
 .masthead--compact .nameplate .flourish { width: min(220px, 55%); }
 
 /* Button that looks like a link (print action etc.) */
@@ -474,22 +456,13 @@ nav.paper-nav a[aria-current="page"] {
 }
 .notice .kicker { display: block; margin-bottom: 4px; }
 
-/* ---------- Editor's note — set like a leader column ---------- */
+/* ---------- Editor's note: one column at a reading measure ---------- */
 .editors-note { margin-top: 14px; }
-.editors-note #editors-note-text { max-width: none; }
-@media (min-width: 720px) {
-  .editors-note #editors-note-text {
-    column-count: 2;
-    column-gap: 34px;
-    column-rule: var(--hairline);
-  }
-}
 .editors-note .signoff {
   font-family: var(--font-head);
   font-style: italic;
   font-size: calc(var(--text-size) * 1.1);
   margin-top: 12px;
-  max-width: none;
 }
 
 /* ---------- Phone strip ---------- */

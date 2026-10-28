@@ -16,7 +16,6 @@
   /* -- Type -- */
   --font-head: "Lora", Georgia, "Times New Roman", serif;
   --font-body: "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
-  --font-deva: "Tiro Devanagari Hindi", "Nirmala UI", serif;
 
   /* -- Size system: body size editable 17–24px, reader scale on top -- */
   --text-base: 19px;
@@ -105,26 +104,10 @@ p  {
   text-wrap: pretty;   /* no one-word last lines */
 }
 
-/* Justify editorial copy on comfortable measures (left-aligned on phones,
-   where justification opens ugly rivers). */
-@media (min-width: 560px) {
-  p.dropcap,
-  .editors-note p,
-  .article p,
-  .columns p {
-    text-align: justify;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-  }
-}
-
-/* Newspaper multi-column running text. column-width lets the browser drop to
-   a single column when the page is narrow or zoomed — never tiny columns. */
-.columns {
-  column-width: 300px;
-  column-gap: 34px;
-  column-rule: var(--hairline);
-}
+/* Running text stays in one left-aligned column: justified lines open uneven
+   gaps between words, and a sentence that jumps to a second column is easy to
+   lose. Both are harder going for older eyes than a plain ragged right. */
+.columns { max-width: var(--measure); }
 .columns > :first-child { margin-top: 0; }
 
 a {
