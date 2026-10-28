@@ -225,6 +225,9 @@ export function createApp({
     }));
 
   app.get("/admin", (_req, res) => res.sendFile(join(root, "admin.html")));
+  // Photos and the logo live in public/, which the build copies into dist/.
+  // Run from the source folder (no build yet), they are served from there.
+  app.use(express.static(join(root, "public")));
   app.use(express.static(root, {
     extensions: ["html"],
     // Volunteers update the paper weekly; make browsers revalidate code and

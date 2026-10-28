@@ -46,6 +46,11 @@ for (const width of [360, 400]) {
     await page.clock.setFixedTime(WHEN);
     for (const path of PAGES) {
       await page.goto(path, { waitUntil: "commit" });
+      // Animations start once the styles are in, and a browser draws nothing
+      // before then, so the unstyled first instant (when a photo is still its
+      // file's full width) is not something any reader sees.
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('link[rel="stylesheet"]')].every((l) => l.sheet));
       let worst = 0;
       for (let i = 0; i < 18; i++) {
         const over = await page.evaluate(() =>

@@ -140,3 +140,22 @@ test.describe("The Front Page", () => {
     await expect(page.locator("#datebook")).toHaveScreenshot("datebook-week.png");
   });
 });
+
+test.describe("Photos", () => {
+  for (const path of ["/", "/about.html"]) {
+    test(`every photo on ${path} loads, is described, and fits a phone`, async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto(path);
+      const photos = page.locator("figure.photo img");
+      expect(await photos.count()).toBeGreaterThan(0);
+      for (const img of await photos.all()) {
+        await img.scrollIntoViewIfNeeded();
+        await expect(img).toHaveAttribute("alt", /.{20,}/);   // a sentence, not a filename
+        await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+      }
+      const overflow = await page.evaluate(() =>
+        document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, "a photo must not push the page sideways").toBeLessThanOrEqual(0);
+    });
+  }
+});

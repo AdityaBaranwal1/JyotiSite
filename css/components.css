@@ -304,7 +304,12 @@ nav.paper-nav a[aria-current="page"] {
 .notice .kicker { display: block; margin-bottom: 4px; }
 
 /* ---------- Editor's note: one column at a reading measure ---------- */
-.editors-note { margin-top: 14px; }
+.editors-note { margin-top: 14px; display: flow-root; }   /* holds its floated photo */
+/* On a phone the editor's words come first and the photo follows them. */
+@media (max-width: 719px) {
+  .editors-note { display: flex; flex-direction: column; }
+  .editors-note figure.photo { order: 1; margin-bottom: 0; }
+}
 .editors-note .signoff {
   font-family: var(--font-head);
   font-style: italic;
@@ -371,7 +376,14 @@ figure.photo {
   margin: 18px 0;
   max-width: 460px;
 }
-figure.photo img { width: 100%; height: auto; }
+/* min-width: 0 so a photo inside a flex column can shrink below its 1200px
+   file instead of pushing the page sideways on a phone. */
+figure.photo { min-width: 0; }
+figure.photo img { display: block; width: 100%; max-width: 100%; height: auto; }
+/* A photo beside a few lines of text is a glimpse, not the story: a
+   landscape crop, so a tall picture never towers over its paragraph or
+   pushes the week's programs off a phone screen. */
+figure.photo--crop img { aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% var(--focus, 50%); }
 figure.photo--wide { max-width: none; margin-top: 26px; }
 @media (min-width: 720px) {
   /* a picture across two of the three columns, its caption set in the
