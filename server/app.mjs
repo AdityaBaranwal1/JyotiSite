@@ -5,7 +5,8 @@
 import express from "express";
 import { readFile, writeFile, rename, readdir, mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { normalizeSchedule } from "../js/data-adapter.js";
+import { normalizeSchedule, isValidEvent } from "../js/data-adapter.js";
+import { describeChanges } from "../js/changes.js";
 import { verifyPassword, issueToken, verifyToken, makeRateLimiter } from "./auth.mjs";
 
 const COOKIE = "jyoti_session";
@@ -34,9 +35,10 @@ export function createApp({
   const versionsDir = join(dataDir, "versions");
   const allowLogin = makeRateLimiter({ windowMs: loginWindowMs, max: loginMax });
 
-  /* ---------- previous editions ----------
-     Every publish files the edition it replaces, so a volunteer who publishes
-     a mistake can put last week's paper back without needing a developer. */
+  /* ---------- earlier copies ----------
+     Every save files the paper it replaces (once per sitting, below), so a
+     volunteer who makes a mess can put the paper back as it was without
+     needing a developer. */
   const VERSION_FILE = /^schedule-[0-9TZ.\-]+\.json$/;
 
   /* The desk saves every change the moment it is made, so a morning's work
@@ -44,10 +46,11 @@ export function createApp({
      actually wants back ("how it was before I sat down") under a dozen
      near-copies. Within a sitting, the paper from before it is already on
      file and the save is not filed again. A restore always files. */
-  async function archiveCurrent({ sitting = false } = {}) {
-    let current;
-    try { current = await readFile(schedulePath, "utf8"); }
-    catch { return null; }                      // nothing published yet
+  const readCurrent = () => readFile(schedulePath, "utf8").catch(() => null);
+
+  async function archiveCurrent({ sitting = false, current } = {}) {
+    current ??= await readCurrent();
+    if (current == null) return null;           // nothing saved yet
     if (sitting) {
       let savedAt = NaN;
       try { savedAt = Date.parse(JSON.parse(current).savedAt); } catch { /* file it */ }
@@ -139,18 +142,14 @@ export function createApp({
     }
     // Validate through the same normalizer the public site uses, but PERSIST
     // the raw shape (keeping "default" zoom markers editable later).
-    const cleanEvents = body.events.filter(
-      (e) => e && typeof e === "object" &&
-        String(e.title ?? "").trim() &&
-        /^\d{4}-\d{2}-\d{2}$/.test(String(e.date ?? "")) &&
-        /^\d{1,2}:\d{2}$/.test(String(e.startTime ?? ""))
-    );
+    const cleanEvents = body.events.filter(isValidEvent);
     /* Standing programs and their exceptions carry the bulk of the schedule.
        An editor that only knows about one-off events must never be able to
        delete them by omission, so anything the body does not supply is
        carried over from the copy already on disk. */
+    const current = await readCurrent();
     let onDisk = {};
-    try { onDisk = JSON.parse(await readFile(schedulePath, "utf8")); } catch { /* first run */ }
+    try { onDisk = JSON.parse(current); } catch { /* first run */ }
 
     const toSave = {
       savedAt: new Date().toISOString(),
@@ -160,35 +159,30 @@ export function createApp({
       exceptions: Array.isArray(body.exceptions) ? body.exceptions : (onDisk.exceptions ?? []),
       events: cleanEvents,
     };
-    // sanity: it must normalize without throwing
-    const normalized = normalizeSchedule(toSave);
     try {
-      await archiveCurrent({ sitting: true });   // file the paper this one replaces
+      normalizeSchedule(toSave);                 // it must print without throwing
+      await archiveCurrent({ sitting: true, current });   // file the paper this one replaces
       await writeSchedule(JSON.stringify(toSave, null, 2) + "\n");
-      res.json({ ok: true, savedAt: toSave.savedAt, kept: cleanEvents.length, normalizedEvents: normalized.events.length });
+      res.json({ ok: true, savedAt: toSave.savedAt });
     } catch {
       res.status(500).json({ error: "The schedule could not be saved. Nothing was changed." });
     }
   });
 
-  /* ---------- previous editions ---------- */
+  /* Each earlier copy comes with what has changed since it, in plain words:
+     exactly what putting it back would undo. */
   app.get("/api/versions", requireSession, async (_req, res) => {
     try {
       let names = [];
       try { names = (await readdir(versionsDir)).filter((f) => VERSION_FILE.test(f)); }
       catch { /* nothing filed yet */ }
+      let now = {};
+      try { now = JSON.parse(await readCurrent()); } catch { /* nothing saved yet */ }
       const editions = [];
       for (const name of names.sort().reverse()) {
         try {
           const raw = JSON.parse(await readFile(join(versionsDir, name), "utf8"));
-          editions.push({
-            id: name,
-            savedAt: raw.savedAt ?? null,
-            series: Array.isArray(raw.series) ? raw.series.length : 0,
-            exceptions: Array.isArray(raw.exceptions) ? raw.exceptions.length : 0,
-            events: Array.isArray(raw.events) ? raw.events.length : 0,
-            programs: normalizeSchedule(raw).events.length,
-          });
+          editions.push({ id: name, savedAt: raw.savedAt ?? null, changes: describeChanges(raw, now) });
         } catch { /* skip an unreadable file rather than fail the list */ }
       }
       res.json({ editions });
@@ -231,6 +225,9 @@ export function createApp({
     }));
 
   app.get("/admin", (_req, res) => res.sendFile(join(root, "admin.html")));
+  // Photos and the logo live in public/, which the build copies into dist/.
+  // Run from the source folder (no build yet), they are served from there.
+  app.use(express.static(join(root, "public")));
   app.use(express.static(root, {
     extensions: ["html"],
     // Volunteers update the paper weekly; make browsers revalidate code and

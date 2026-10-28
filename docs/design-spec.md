@@ -24,7 +24,7 @@ White-on-accent (≈2.2:1) is forbidden.
 
 ## Type
 
-- **Masthead:** hand-lettered nameplate with जीवन ज्योति worked in (English with Hindi accents).
+- **Masthead:** hand-lettered nameplate, English only.
 - **Headlines:** Lora (sturdy newspaper serif — not Playfair; hairline strokes vanish for old eyes).
 - **Running prose: Lora serif, justified on comfortable measures** (left-aligned on phones, where
   justification opens rivers), 19px, line-height 1.6 — the single biggest "newspaper" tell. The

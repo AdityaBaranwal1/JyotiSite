@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>The Editor's Desk · Jeevan Jyoti</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/brand/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
   <!-- The masthead is inked once per visit: later pages in the same sitting
        open already printed. Runs before the stylesheets so nothing flickers. -->
   <script>try{if(sessionStorage.getItem("jj-press"))document.documentElement.classList.add("jj-pressed");else sessionStorage.setItem("jj-press","1")}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paper.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/motion.css">
@@ -28,11 +30,8 @@
 
     <header class="masthead masthead--compact">
       <div class="nameplate">
-        <span class="deva" lang="hi">जीवन ज्योति</span>
-        <h1 class="name">Jeevan Jyoti</h1>
-        <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path pathLength="1" d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-        </svg>
+        <h1 class="name"><img class="logo" src="/brand/jeevan-jyoti-logo-no-flags.svg" width="1180" height="366"
+          alt="Jeevan Jyoti"></h1>
         <span class="tagline">The Editor's Desk</span>
       </div>
     </header>
@@ -72,15 +71,13 @@
           <hr class="thick-thin">
         </div>
         <nav class="start-grid" aria-label="Jobs on the desk">
-          <a class="btn start-btn" href="#schedule">Change or cancel a date</a>
+          <a class="btn start-btn" href="#schedule">Change or cancel a program</a>
+          <button type="button" class="btn start-btn" id="start-add">Add a new program</button>
           <a class="btn start-btn" href="#note">Write the note on the front page</a>
-          <a class="btn start-btn" href="#weekly">Change a weekly program</a>
-          <a class="btn start-btn" href="#history">Undo a mistake</a>
+          <a class="btn start-btn" href="#zoom">Change the Zoom link</a>
         </nav>
-        <p class="byline">Every change goes on the paper the moment you make it. Nothing you do
-          here is permanent: the <strong>Undo</strong> button at the bottom of the screen takes
-          back your last change, and <a href="#history">Undo a mistake</a> can put back the
-          whole paper as it was.</p>
+        <p class="byline">Changes show on the paper as soon as you make them. Pressed the wrong
+          thing? The <strong>Undo</strong> button at the bottom of the screen takes it back.</p>
       </section>
 
       <!-- The dates -->
@@ -89,9 +86,10 @@
           <span class="kicker">The Schedule</span>
           <h2 id="desk-title">This Week</h2>
           <hr class="thick-thin">
-          <p class="byline">Press <strong>Change</strong> to alter a program for one date, or
-            <strong>Cancel this date</strong> if it is not happening. To change a program every
-            week, use <a href="#weekly">Weekly Programs</a>.</p>
+          <p class="byline">Press <strong>Change</strong> to alter a program, or
+            <strong>Cancel this date</strong> if it is not happening. For a program that
+            happens every week, you will be asked whether to change just that date or every
+            week from then on.</p>
         </div>
 
         <div class="desk-toolbar">
@@ -125,20 +123,6 @@
         </div>
       </section>
 
-      <!-- What is normally on -->
-      <section id="weekly" class="feature" aria-labelledby="weekly-h">
-        <div class="section-head">
-          <span class="kicker">The shape of a normal week</span>
-          <h2 id="weekly-h">Weekly Programs</h2>
-          <hr class="thick-thin">
-          <p class="byline">These go on the paper every week until you stop them. A change here
-            starts today and carries on every week after; weeks already past stay as they
-            were.</p>
-        </div>
-        <div id="weekly-list"></div>
-        <button type="button" class="btn btn--quiet desk-add" id="weekly-add">+ Add a weekly program</button>
-      </section>
-
       <!-- The usual Zoom room -->
       <section id="zoom" class="feature" aria-labelledby="zoom-h">
         <div class="section-head">
@@ -155,25 +139,25 @@
         </div>
       </section>
 
-      <!-- Earlier versions -->
+      <!-- Earlier copies -->
       <section id="history" class="feature" aria-labelledby="history-h">
         <div class="section-head">
-          <span class="kicker">If something goes wrong</span>
-          <h2 id="history-h">Undo a Mistake</h2>
+          <span class="kicker">Going further back</span>
+          <h2 id="history-h">Earlier Copies of the Paper</h2>
           <hr class="thick-thin">
-          <p class="byline">Each time someone sits down to make changes, the paper as it was
-            before is kept here. Putting one back is safe: the paper as it is now is kept too,
-            so you can always change your mind.</p>
+          <p class="byline"><strong>Undo</strong> takes back one change at a time. To go back
+            further, choose one of these copies: each lists what has changed since, and going
+            back to it undoes all of that at once.</p>
         </div>
         <div id="editions-list"></div>
       </section>
 
       <!-- Always on screen: what just happened, and the way back. -->
       <div class="save-bar">
-        <span class="save-status" id="save-status" role="status" aria-live="polite">Changes go on
-          the paper straight away.</span>
+        <p class="save-status" id="save-status" role="status" aria-live="polite">Changes show
+          on the paper straight away.</p>
         <span class="save-actions">
-          <button type="button" class="btn" id="undo" hidden>Undo</button>
+          <button type="button" class="btn" id="undo" hidden><span aria-hidden="true">↶</span> Undo</button>
           <button type="button" class="btn btn--quiet" id="preview">See the paper</button>
         </span>
       </div>
@@ -204,25 +188,32 @@
     </dialog>
 
     <!-- ================= PROGRAM EDITOR =================
-         One form for both jobs: a program on one date, and a weekly program.
-         js/admin.js shows the date or the weekday, and the actions that fit. -->
+         One form for every program. For a weekly program it first asks which
+         dates the change is for; js/admin.js shows the fields and actions
+         that fit the answer. -->
     <dialog id="event-dialog" class="event-dialog">
       <!-- novalidate: js/admin.js checks the fields itself, in plain words, and
            the browser would otherwise refuse to save over a hidden date box. -->
       <form method="dialog" id="event-form" novalidate>
         <h2 id="event-dialog-title">Change a program</h2>
         <hr class="thick-thin">
-        <div class="standing-banner" id="ev-banner" hidden>
-          <p id="ev-banner-text"></p>
-          <button type="button" class="btn btn--quiet" id="ev-switch" hidden></button>
-        </div>
         <div class="field-grid">
+          <!-- Each answer says what it changes and what it leaves alone. -->
+          <fieldset class="scope span2" id="f-scope" hidden>
+            <legend id="scope-legend">Which dates?</legend>
+            <label class="choice"><input type="radio" name="ev-scope" value="date" checked>
+              <span class="choice-text"><span class="choice-title" id="scope-date"></span>
+                <span class="choice-note" id="scope-date-note"></span></span></label>
+            <label class="choice"><input type="radio" name="ev-scope" value="weekly">
+              <span class="choice-text"><span class="choice-title" id="scope-weekly"></span>
+                <span class="choice-note" id="scope-weekly-note"></span></span></label>
+          </fieldset>
           <div class="field span2">
             <label for="ev-title">Program name</label>
             <input id="ev-title" required maxlength="120">
           </div>
           <div class="field span2" id="f-date">
-            <label for="ev-date">Date</label>
+            <label for="ev-date" id="ev-date-label">Date</label>
             <input id="ev-date" type="date" required>
           </div>
           <div class="field span2" id="f-day" hidden>
@@ -239,7 +230,8 @@
             <select id="ev-end"></select>
           </div>
           <details class="field span2 more-options" id="ev-more">
-            <summary>More options <span id="ev-more-hint"></span></summary>
+            <summary><span class="more-title">More options</span>
+              <span class="more-hint" id="ev-more-hint"></span></summary>
             <label for="ev-desc">One friendly line about it</label>
             <input id="ev-desc" maxlength="200">
             <label for="ev-category">Kind of program</label>

@@ -4,30 +4,19 @@
    from data-adapter.js only. */
 
 import {
-  parseISO, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
-  eachDayOfInterval, isSameDay, addMonths, getDay,
-} from "date-fns";
+  MONTHS, DAYS, SHORT_DAYS, isoOf, dateOf, addDays, mondayOf, monthKey, monthCells, groupBy,
+} from "./dates.js";
 import { categoryIcon } from "./icons.js";
 
 export const DEFAULT_PHONE = "845-709-2216";
 
-const MONTHS = ["January","February","March","April","May","June",
-                "July","August","September","October","November","December"];
-const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-
-/* The paper's week runs Monday to Sunday, so every week boundary in here
-   passes weekStartsOn:1 rather than date-fns' Sunday default. */
-const MON = { weekStartsOn: 1 };
-
-/* "YYYY-MM-DD" is a calendar label, and parseISO reads it as local midnight —
-   `new Date(str)` would read it as UTC and shift the day in our timezone. */
-const localDate = (iso) => parseISO(iso);
-
-export function formatTime(hhmm) {
+/* "3:00 PM". `brief` is for the month grid, which has one column's width:
+   a time with no minutes drops ":00" there rather than wrapping the cell. */
+export function formatTime(hhmm, { brief = false } = {}) {
   const [h, m] = String(hhmm).split(":").map(Number);
-  const am = h < 12;
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${am ? "AM" : "PM"}`;
+  const mm = brief && m === 0 ? "" : `:${String(m).padStart(2, "0")}`;
+  return `${h12}${mm} ${h < 12 ? "AM" : "PM"}`;
 }
 
 /* Dash-free time range; meridiem stated once when both times share it:
@@ -44,24 +33,23 @@ export function timeRange(start, end) {
 /* Monday..Sunday window containing `now` (a Sunday belongs to the week
    that began the previous Monday). */
 function weekBounds(now) {
-  return { monday: startOfWeek(now, MON), sunday: endOfWeek(now, MON) };
+  const monday = mondayOf(now);
+  return { monday, sunday: dateOf(addDays(isoOf(monday), 6)) };
 }
 
-export const isoOf = (d) => format(d, "yyyy-MM-dd");
+/* "June 8 to 14", or "June 29 to July 5": the month is said again only when
+   the week crosses into the next one. */
+export function weekSpan(now = new Date()) {
+  const { monday, sunday } = weekBounds(now);
+  const to = (sunday.getMonth() === monday.getMonth() ? "" : `${MONTHS[sunday.getMonth()]} `) + sunday.getDate();
+  return `${MONTHS[monday.getMonth()]} ${monday.getDate()} to ${to}`;
+}
 
 export function weekLabelFor(now = new Date()) {
   const { monday, sunday } = weekBounds(now);
-  const from = `${MONTHS[monday.getMonth()]} ${monday.getDate()}` +
-    (monday.getFullYear() !== sunday.getFullYear() ? `, ${monday.getFullYear()}` : "");
-  const to = `${MONTHS[sunday.getMonth()]} ${sunday.getDate()}, ${sunday.getFullYear()}`;
-  return `Week of ${from} to ${to}`;
-}
-
-export function updatedLabelFor(savedAt) {
-  if (!savedAt) return null;
-  const d = new Date(savedAt);
-  if (Number.isNaN(d.getTime())) return null;
-  return `Updated ${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  if (monday.getFullYear() === sunday.getFullYear()) return `Week of ${weekSpan(now)}, ${sunday.getFullYear()}`;
+  const day = (d) => `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `Week of ${day(monday)} to ${day(sunday)}`;
 }
 
 export function filterWeek(events, now = new Date()) {
@@ -71,7 +59,7 @@ export function filterWeek(events, now = new Date()) {
 }
 
 export function filterMonth(events, year, month1) {
-  const prefix = `${year}-${String(month1).padStart(2, "0")}-`;
+  const prefix = `${monthKey(year, month1)}-`;
   return events.filter((e) => e.date.startsWith(prefix));
 }
 
@@ -89,40 +77,35 @@ export function monthBounds(events) {
 }
 
 export function dayLabel(iso) {
-  const d = localDate(iso);
+  const d = dateOf(iso);
   return `${DAYS[d.getDay()]} · ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export function isToday(iso, now = new Date()) {
-  return isSameDay(localDate(iso), now);
+  return iso === isoOf(now);
 }
 
+export const byStartTime = (a, b) => String(a.startTime).localeCompare(String(b.startTime));
+
 export function groupByDay(events) {
-  const byDate = new Map();
-  for (const e of events) {
-    if (!byDate.has(e.date)) byDate.set(e.date, []);
-    byDate.get(e.date).push(e);
-  }
+  const byDate = groupBy(events, (e) => e.date);
   return [...byDate.keys()].sort().map((date) => ({
     date,
     label: dayLabel(date),
-    events: byDate.get(date).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    events: byDate.get(date).sort(byStartTime),
   }));
 }
 
 /* ---------- DOM rendering (browser only) ---------- */
 
-function el(tag, className, text) {
+export function el(tag, className, text) {
   const n = document.createElement(tag);
   if (className) n.className = className;
   if (text != null) n.textContent = text;
   return n;
 }
 
-function stamp(text, extra = "") {
-  const s = el("span", `stamp ${extra}`.trim(), text);
-  return s;
-}
+const stamp = (text, extra = "") => el("span", `stamp ${extra}`.trim(), text);
 
 function renderListing(event) {
   const item = el("article", "listing" + (event.cancelled ? " is-cancelled" : ""));
@@ -161,11 +144,8 @@ function renderListing(event) {
   return item;
 }
 
-/* variant: "column" (rules & whitespace), "ledger" (big date numerals),
-   "panel" (contained blocks). All flat, all senior-sized. */
-export function renderSchedule(container, schedule, { now = new Date(), variant = "column" } = {}) {
+export function renderSchedule(container, schedule, { now = new Date() } = {}) {
   container.textContent = "";
-  container.dataset.variant = variant;
 
   if (!schedule || schedule.events.length === 0) {
     const box = el("div", "notice");
@@ -179,14 +159,13 @@ export function renderSchedule(container, schedule, { now = new Date(), variant 
   }
 
   groupByDay(schedule.events).forEach((group, i) => {
-    const d = localDate(group.date);
+    const d = dateOf(group.date);
     const section = el("section", "day-section");
     section.setAttribute("aria-label", group.label);
     // its place in the order the days settle onto the page (css/motion.css)
     section.style.setProperty("--i", String(Math.min(i, 8)));
 
     const head = el("div", "day-head");
-    head.appendChild(el("span", "day-num", String(d.getDate())));
     const meta = el("span", "day-meta");
     meta.appendChild(el("span", "day-name", DAYS[d.getDay()]));
     meta.appendChild(el("span", "day-date", `${MONTHS[d.getMonth()]} ${d.getDate()}`));
@@ -201,121 +180,24 @@ export function renderSchedule(container, schedule, { now = new Date(), variant 
   });
 }
 
-/* ---------- Public month calendar (grid like a wall calendar) ---------- */
-
-export function renderMonthCalendar(container, events, { year, month1, now = new Date(), selected, onSelectDay } = {}) {
-  container.textContent = "";
-  const monthEvents = filterMonth(events, year, month1);
-  const byDate = new Map();
-  for (const e of monthEvents) {
-    if (!byDate.has(e.date)) byDate.set(e.date, []);
-    byDate.get(e.date).push(e);
-  }
-
-  const grid = el("div", "cal-grid cal-grid--public");
-  for (const dow of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
-    grid.appendChild(el("div", "cal-dow", dow));
-  }
-  const first = new Date(year, month1 - 1, 1);
-  const lead = (first.getDay() + 6) % 7;
-  const pad = () => {
-    const c = el("div", "cal-cell cal-cell--pad");
-    c.setAttribute("aria-hidden", "true");
-    return c;
-  };
-  for (let i = 0; i < lead; i++) grid.appendChild(pad());
-  const daysInMonth = new Date(year, month1, 0).getDate();
-  for (let day = 1; day <= daysInMonth; day++) {
-    const iso = `${year}-${String(month1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const todays = byDate.get(iso) || [];
-    const cell = el("button", "cal-cell");
-    cell.type = "button";
-    if (todays.length) cell.classList.add("has-events");
-    if (isToday(iso, now)) cell.classList.add("is-today");
-    if (iso === selected) cell.classList.add("is-selected");
-    if (!todays.length) cell.disabled = true;
-    cell.setAttribute("aria-label",
-      `${dayLabel(iso)}: ${todays.length} program${todays.length === 1 ? "" : "s"}`);
-    cell.appendChild(el("span", "cal-date", String(day)));
-    if (todays.length) {
-      cell.appendChild(el("span", "cal-dots", "●".repeat(Math.min(todays.length, 3))));
-      cell.addEventListener("click", () => onSelectDay?.(iso));
-    }
-    grid.appendChild(cell);
-  }
-  // Complete the last week so the grid closes on a square edge instead of
-  // stopping mid-row.
-  const trail = (7 - ((lead + daysInMonth) % 7)) % 7;
-  for (let i = 0; i < trail; i++) grid.appendChild(pad());
-  container.appendChild(grid);
-}
-
 /* Full-size listings for one selected day (same rows as the front page). */
-export function renderDayListings(container, events, iso, { now = new Date() } = {}) {
+/* `head: false` is for the phone, where the programs open right under the
+   day that was pressed and that day already names itself. */
+export function renderDayListings(container, events, iso, { now = new Date(), head = true } = {}) {
   container.textContent = "";
   if (!iso) return;
-  const head = el("div", "day-head");
-  head.appendChild(el("span", "day-meta"));
-  // "October 23" stays together when the heading wraps beside its stamp
-  head.firstChild.appendChild(el("span", "day-name", dayLabel(iso).replace(/ (\d+)$/, "\u00a0$1")));
-  if (isToday(iso, now)) head.appendChild(stamp("Today", "stamp--today"));
-  container.appendChild(head);
+  if (head) {
+    const h = el("div", "day-head");
+    h.appendChild(el("span", "day-meta"));
+    // "October 23" stays together when the heading wraps beside its stamp
+    h.firstChild.appendChild(el("span", "day-name", dayLabel(iso).replace(/ (\d+)$/, "\u00a0$1")));
+    if (isToday(iso, now)) h.appendChild(stamp("Today", "stamp--today"));
+    container.appendChild(h);
+  }
   events
     .filter((e) => e.date === iso)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .sort(byStartTime)
     .forEach((e) => container.appendChild(renderListing(e)));
-}
-
-/* ---------- Month view: the paper's listings page ----------
-   Compact ruled rows grouped by week: distinct from the front page's
-   generous datebook, like a broadsheet's "Month Ahead" listings column. */
-export function renderMonthList(container, events, { year, month1, now = new Date() } = {}) {
-  container.textContent = "";
-  const monthEvents = filterMonth(events, year, month1);
-
-  if (monthEvents.length === 0) {
-    const box = el("div", "notice");
-    box.appendChild(el("span", "kicker", "Notice"));
-    box.appendChild(el("p", null,
-      `Nothing is listed for ${MONTHS[month1 - 1]} yet. Call us at ${DEFAULT_PHONE} to check what's coming.`));
-    container.appendChild(box);
-    return;
-  }
-
-  // group by Monday-of-week
-  const byWeek = new Map();
-  for (const e of monthEvents) {
-    const key = isoOf(startOfWeek(localDate(e.date), MON));
-    if (!byWeek.has(key)) byWeek.set(key, []);
-    byWeek.get(key).push(e);
-  }
-
-  for (const key of [...byWeek.keys()].sort()) {
-    const monday = localDate(key);
-    const section = el("section", "month-week");
-    section.appendChild(el("h3", "month-week-head", weekLabelFor(monday)));
-
-    const list = el("div", "month-rows");
-    byWeek.get(key)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
-      .forEach((e) => {
-        const row = el("div", "month-row" + (e.cancelled ? " is-cancelled" : ""));
-        const d = localDate(e.date);
-        const day = el("span", "m-day");
-        day.appendChild(el("strong", null, DAYS[d.getDay()].slice(0, 3)));
-        day.appendChild(el("span", "m-date", ` ${d.getDate()}`));
-        row.appendChild(day);
-        const what = el("span", "m-what");
-        what.appendChild(el("strong", "m-title", e.title));
-        what.appendChild(el("span", "m-time", ` · ${timeRange(e.startTime, e.endTime)}`));
-        if (e.cancelled) what.appendChild(el("span", "m-cxl", " · Cancelled"));
-        row.appendChild(what);
-        if (isToday(e.date, now)) row.appendChild(stamp("Today", "stamp--today m-stamp"));
-        list.appendChild(row);
-      });
-    section.appendChild(list);
-    container.appendChild(section);
-  }
 }
 
 export function monthTitle(year, month1) {
@@ -341,17 +223,6 @@ export function renderStaleNotice(container) {
    actually worth reading. Marigold is spent on exactly two things: today, and
    anything that is not the usual. */
 
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/* "10 AM", "3 PM", "11:30 AM" — the grid has one column's width, so a time
-   with no minutes drops ":00" rather than wrapping the cell. */
-export function briefTime(hhmm) {
-  const [h, m] = String(hhmm).split(":").map(Number);
-  const am = h < 12;
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${am ? "AM" : "PM"}` : `${h12}:${String(m).padStart(2, "0")} ${am ? "AM" : "PM"}`;
-}
-
 function timetableEntry(event) {
   const entry = el("div", "tt-entry");
   // A one-off has no series behind it, so it is by definition not the usual.
@@ -360,18 +231,13 @@ function timetableEntry(event) {
 
   entry.appendChild(el("span", "tt-name", event.shortTitle || event.title));
   entry.appendChild(el("span", "tt-time",
-    event.cancelled ? "Cancelled" : briefTime(event.startTime)));
+    event.cancelled ? "Cancelled" : formatTime(event.startTime, { brief: true })));
   return entry;
 }
 
 export function renderTimetable(container, events, { year, month1, now = new Date(), selected, onSelectDay } = {}) {
   container.textContent = "";
-  const monthEvents = filterMonth(events, year, month1);
-  const byDate = new Map();
-  for (const e of monthEvents) {
-    if (!byDate.has(e.date)) byDate.set(e.date, []);
-    byDate.get(e.date).push(e);
-  }
+  const byDate = groupBy(filterMonth(events, year, month1), (e) => e.date);
 
   const grid = el("div", "timetable");
 
@@ -386,9 +252,7 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
     grid.appendChild(head);
   }
 
-  const first = new Date(year, month1 - 1, 1);
-  const lead = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month1, 0).getDate();
+  const { lead, isos, trail } = monthCells(year, month1);
   const pad = () => {
     const c = el("div", "tt-day tt-day--pad");
     c.setAttribute("aria-hidden", "true");
@@ -396,12 +260,19 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
   };
   for (let i = 0; i < lead; i++) grid.appendChild(pad());
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const iso = `${year}-${String(month1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const todays = (byDate.get(iso) || [])
-      .slice()
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-    const d = localDate(iso);
+  // On a phone the grid is read as a list, a week at a time; each week that
+  // has programs gets a heading there. The wall calendar shows weeks as rows,
+  // so it never shows these.
+  let weekShown = null;
+
+  for (const iso of isos) {
+    const todays = (byDate.get(iso) ?? []).sort(byStartTime);
+    const d = dateOf(iso);
+    const week = isoOf(mondayOf(d));
+    if (todays.length && week !== weekShown) {
+      grid.appendChild(el("h3", "tt-week", weekSpan(d)));
+      weekShown = week;
+    }
 
     const cell = el(todays.length ? "button" : "div", "tt-day");
     cell.dataset.date = iso;
@@ -416,13 +287,19 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
     if (iso === selected) cell.classList.add("is-selected");
 
     const head = el("div", "tt-daynum");
-    // The weekday only needs printing when the columns collapse on a phone.
+    // The weekday only needs printing when the columns collapse on a phone,
+    // where today's leaf says so in words.
     head.appendChild(el("span", "tt-dow-inline", SHORT_DAYS[d.getDay()]));
-    head.appendChild(el("span", "tt-date", String(day)));
+    if (isToday(iso, now)) head.appendChild(el("span", "tt-today-word", "Today"));
+    head.appendChild(el("span", "tt-date", String(d.getDate())));
     cell.appendChild(head);
 
-    for (const e of todays) cell.appendChild(timetableEntry(e));
-    if (!todays.length) cell.appendChild(el("span", "tt-none", "No programs"));
+    const list = el("div", "tt-entries");
+    for (const e of todays) list.appendChild(timetableEntry(e));
+    if (!todays.length) list.appendChild(el("span", "tt-none", "No programs"));
+    cell.appendChild(list);
+    // the phone's sign that a day opens
+    if (todays.length) cell.appendChild(el("span", "tt-open"));
 
     cell.setAttribute("aria-label", todays.length
       ? `${dayLabel(iso)}: ${todays.map((e) => e.title).join(", ")}`
@@ -430,7 +307,6 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
     grid.appendChild(cell);
   }
 
-  const trail = (7 - ((lead + daysInMonth) % 7)) % 7;
   for (let i = 0; i < trail; i++) grid.appendChild(pad());
 
   container.appendChild(grid);

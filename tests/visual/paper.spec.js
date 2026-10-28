@@ -6,9 +6,18 @@ import { test, expect } from "@playwright/test";
 const WHEN = new Date("2026-09-19T15:30:00-04:00");
 const freeze = async (page) => page.clock.setFixedTime(WHEN);
 
+/* fonts.ready only waits for faces already asked for; a bold weight first
+   needed mid-render can land after it, and the picture comes out in a
+   stand-in face. Loading every declared face first makes each run the same. */
+const fontsLoaded = (page) =>
+  page.evaluate(async () => {
+    await Promise.all([...document.fonts].map((f) => f.load().catch(() => {})));
+    await document.fonts.ready;
+  });
+
 const settled = async (page) => {
   await page.waitForFunction(() => document.querySelectorAll(".tt-day").length > 0);
-  await page.evaluate(() => document.fonts.ready);
+  await fontsLoaded(page);
 };
 
 test.describe("The Month Ahead", () => {
@@ -74,6 +83,43 @@ test.describe("The Month Ahead", () => {
     await expect(detail.getByRole("link", { name: /Join .* on Zoom/ })).toBeVisible();
   });
 
+  test("on a phone, a day opens its programs right under it, and closes again", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/month.html");
+    await settled(page);
+    // Today is open on arrival, with a way to join.
+    const today = page.locator(".tt-day.is-today");
+    await expect(today).toHaveAttribute("aria-expanded", "true");
+    await expect(today.locator(".tt-today-word")).toHaveText("Today");
+    const drawer = page.locator(".tt-inline");
+    await expect(drawer).toHaveCount(1);
+    await expect(drawer.getByRole("link", { name: /Join .* on Zoom/ })).toBeVisible();
+
+    // Pressing another day moves the drawer under that day.
+    const yoga = page.locator('.tt-day[data-date="2026-09-14"]');
+    await yoga.click();
+    await expect(yoga).toHaveAttribute("aria-expanded", "true");
+    await expect(today).toHaveAttribute("aria-expanded", "false");
+    expect(await yoga.evaluate((el) => el.nextElementSibling?.classList.contains("tt-inline"))).toBe(true);
+    await expect(drawer).toContainText("Yoga & Guided Meditation");
+    // The programs below the list are the wide screen's; the phone does not show them twice.
+    await expect(page.locator("#day-programs")).toBeHidden();
+
+    // Pressing it again closes it.
+    await yoga.click();
+    await expect(yoga).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator(".tt-inline")).toHaveCount(0);
+  });
+
+  test("the wall calendar keeps its programs below the grid", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page.goto("/month.html");
+    await settled(page);
+    await expect(page.locator(".tt-week").first()).toBeHidden();
+    await expect(page.locator(".tt-inline")).toBeHidden();
+    await expect(page.locator("#day-programs")).toBeVisible();
+  });
+
   test("states the standing programs in words", async ({ page }) => {
     await page.goto("/month.html");
     await settled(page);
@@ -90,7 +136,26 @@ test.describe("The Front Page", () => {
     await page.setViewportSize({ width: 1280, height: 1600 });
     await page.goto("/");
     await page.waitForFunction(() => document.querySelectorAll(".listing").length > 0);
-    await page.evaluate(() => document.fonts.ready);
+    await fontsLoaded(page);
     await expect(page.locator("#datebook")).toHaveScreenshot("datebook-week.png");
   });
+});
+
+test.describe("Photos", () => {
+  for (const path of ["/", "/about.html"]) {
+    test(`every photo on ${path} loads, is described, and fits a phone`, async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto(path);
+      const photos = page.locator("figure.photo img");
+      expect(await photos.count()).toBeGreaterThan(0);
+      for (const img of await photos.all()) {
+        await img.scrollIntoViewIfNeeded();
+        await expect(img).toHaveAttribute("alt", /.{20,}/);   // a sentence, not a filename
+        await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+      }
+      const overflow = await page.evaluate(() =>
+        document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, "a photo must not push the page sideways").toBeLessThanOrEqual(0);
+    });
+  }
 });

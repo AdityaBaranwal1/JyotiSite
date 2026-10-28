@@ -3,15 +3,15 @@
    datebook, dateline, editor's note, weather ear. */
 
 import {
-  applyTheme, applyScale, loadSavedTheme, loadScale, saveScale, SCALE_STEPS,
-  CURATED_FONTS,
+  applyTheme, applyScale, loadSavedTheme, loadScale, saveScale, ensureFont,
 } from "./theme.js";
 import { getSchedule, describeSeries, activeSeries } from "./data-adapter.js";
 import {
   renderSchedule, renderStaleNotice, renderTimetable, renderDayListings,
   renderStandingPrograms, filterWeek, filterMonth, weekLabelFor,
-  updatedLabelFor, monthTitle, monthBounds, isoOf,
+  monthTitle, monthBounds,
 } from "./schedule.js";
+import { todayIso, monthKey, MONTHS } from "./dates.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
 import { transition, motionOK } from "./motion.js";
@@ -20,27 +20,10 @@ import { transition, motionOK } from "./motion.js";
 const savedTheme = loadSavedTheme();
 if (savedTheme) {
   applyTheme(savedTheme);
-  ensureFontsLoaded(savedTheme);
+  ensureFont(savedTheme.fontHead, "head");
+  ensureFont(savedTheme.fontBody, "body");
 }
 applyScale(loadScale());
-
-function ensureFontsLoaded(theme) {
-  // If the saved theme uses a curated font not in the default page bundle,
-  // pull it from Google Fonts on demand.
-  const wanted = CURATED_FONTS.filter(
-    (f) => theme.fontHead?.includes(f.name.split(" (")[0]) || theme.fontBody?.includes(f.name.split(" (")[0])
-  );
-  for (const f of wanted) {
-    const id = `gf-${f.gf}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = `https://fonts.googleapis.com/css2?family=${f.gf}&display=swap`;
-      document.head.appendChild(link);
-    }
-  }
-}
 
 /* ---------- Reader text-size control (A / A+ / A++) ---------- */
 function wireReaderControls() {
@@ -71,24 +54,23 @@ async function fillSchedule() {
   const noticeSlot = document.getElementById("notice-slot");
   if (stale && noticeSlot) renderStaleNotice(noticeSlot);
 
+  const now = new Date();
   if (view === "month") {
     initMonthView(datebook, ok ? schedule : null);
   } else {
-    const now = new Date();
     const weekSchedule =
       ok && schedule ? { ...schedule, events: filterWeek(schedule.events, now) } : null;
-    renderSchedule(datebook, weekSchedule, { variant: datebookVariant() });
+    renderSchedule(datebook, weekSchedule);
   }
 
-  // The dateline is computed, never typed: week label from today's date,
-  // the Updated line from when the schedule was last saved.
+  // The dateline is computed, never typed.
   const weekEl = document.getElementById("week-label");
-  if (weekEl) weekEl.textContent = weekLabelFor(new Date());
-  const updEl = document.getElementById("updated-line");
-  if (updEl) {
-    const up = updatedLabelFor(schedule?.savedAt);
-    if (up) updEl.textContent = up;
-    else updEl.remove();
+  if (weekEl) weekEl.textContent = weekLabelFor(now);
+  // The month button names the month it opens: "See all of September".
+  const monthLink = document.getElementById("month-link");
+  if (monthLink) {
+    document.getElementById("month-link-label").textContent = `See all of ${MONTHS[now.getMonth()]}`;
+    monthLink.href = `month.html?m=${monthKey(now.getFullYear(), now.getMonth() + 1)}`;
   }
 
   const note = document.getElementById("editors-note-text");
@@ -97,13 +79,6 @@ async function fillSchedule() {
   // The page has its final height now; motion.js can find the rules that
   // are still below the fold.
   document.dispatchEvent(new Event("jj:rendered"));
-}
-
-/* The paper prints the "column" datebook. The other two looks stay
-   reachable for comparison at ?style=ledger and ?style=panel. */
-function datebookVariant() {
-  const asked = new URLSearchParams(location.search).get("style");
-  return ["column", "ledger", "panel"].includes(asked) ? asked : "column";
 }
 
 /* Month page: a wall-calendar grid; tap a marked day to read its programs.
@@ -121,8 +96,7 @@ function initMonthView(container, schedule) {
   // The rhythm, stated once in words, above the month that varies it.
   const standing = document.getElementById("standing-programs");
   if (standing) {
-    const today = isoOf(new Date());
-    renderStandingPrograms(standing, activeSeries(schedule?.series, today), describeSeries);
+    renderStandingPrograms(standing, activeSeries(schedule?.series, todayIso()), describeSeries);
   }
 
   const fromParam = /^\d{4}-\d{2}$/.test(new URLSearchParams(location.search).get("m") || "")
@@ -133,21 +107,17 @@ function initMonthView(container, schedule) {
   let month1 = fromParam ? fromParam[1] : now.getMonth() + 1;
   let selected = null;
 
-  const ym = () => `${year}-${String(month1).padStart(2, "0")}`;
   const shift = (delta) => {
-    let m = month1 + delta, y = year;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    return `${y}-${String(m).padStart(2, "0")}`;
+    const d = new Date(year, month1 - 1 + delta, 1);
+    return monthKey(d.getFullYear(), d.getMonth() + 1);
   };
 
   const pickDefaultDay = () => {
     const inMonth = filterMonth(events, year, month1)
       .map((e) => e.date).sort();
     if (!inMonth.length) return null;
-    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    if (inMonth.includes(todayIso)) return todayIso;
-    return inMonth.find((d) => d >= todayIso) || inMonth[0];
+    const today = todayIso(now);
+    return inMonth.find((d) => d >= today) || inMonth[0];
   };
 
   // The buttons name the month they lead to: "‹ September" says more than
@@ -163,17 +133,41 @@ function initMonthView(container, schedule) {
 
   // Choosing a day only moves the tint and re-sets the programs below; the
   // grid itself is not redrawn, so the tint can ease across.
-  const selectDay = (iso, { reveal = false } = {}) => {
-    selected = iso;
-    for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
-      cell.classList.toggle("is-selected", cell.dataset.date === iso);
+  /* On a phone the month is a list of days, and a day opens like a drawer:
+     its programs, with their Join buttons, appear right under it, and
+     pressing it again closes it. On a wider screen the wall calendar keeps
+     the chosen day's programs below the grid. */
+  const narrow = matchMedia("(max-width: 880px)");
+  const openUnderDay = () => {
+    container.querySelector(".tt-inline")?.remove();
+    let panel = null;
+    for (const cell of container.querySelectorAll(".tt-day.has-events")) {
+      const open = cell.dataset.date === selected;
+      cell.setAttribute("aria-expanded", String(open && narrow.matches));
+      if (!open) continue;
+      panel = document.createElement("div");
+      panel.className = "tt-inline datebook";
+      renderDayListings(panel, events, selected, { head: false });
+      cell.after(panel);
     }
+    return panel;
+  };
+
+  const selectDay = (iso, { reveal = false } = {}) => {
+    selected = narrow.matches && iso === selected ? null : iso;
+    for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
+      cell.classList.toggle("is-selected", cell.dataset.date === selected);
+    }
+    const panel = openUnderDay();
     if (!dayPrograms) return;
     renderDayListings(dayPrograms, events, selected);
-    // On a phone the programs are a long scroll below the day that was
-    // tapped; bring them up so the tap visibly did something.
-    if (reveal && dayPrograms.getBoundingClientRect().top > innerHeight * 0.75) {
-      dayPrograms.scrollIntoView({ behavior: motionOK() ? "smooth" : "auto", block: "start" });
+    if (!reveal) return;
+    const behavior = motionOK() ? "smooth" : "auto";
+    // Make sure what just opened is on screen: on a phone, the drawer under
+    // the day; on a wide screen, the programs below the grid.
+    if (narrow.matches) panel?.scrollIntoView({ behavior, block: "nearest" });
+    else if (dayPrograms.getBoundingClientRect().top > innerHeight * 0.75) {
+      dayPrograms.scrollIntoView({ behavior, block: "start" });
     }
   };
 
@@ -183,6 +177,7 @@ function initMonthView(container, schedule) {
       year, month1, selected,
       onSelectDay: (iso) => selectDay(iso, { reveal: true }),
     });
+    openUnderDay();
     if (hint) hint.hidden = false;
     if (dayPrograms) renderDayListings(dayPrograms, events, selected);
     // navigation stops where the data stops
@@ -190,7 +185,7 @@ function initMonthView(container, schedule) {
     if (next) next.disabled = !bounds || shift(1) > bounds.max;
     labelNav(prev, -1, true);
     labelNav(next, 1, false);
-    history.replaceState(null, "", `?m=${ym()}`);
+    history.replaceState(null, "", `?m=${monthKey(year, month1)}`);
   };
   const step = (delta) => transition(() => {
     [year, month1] = shift(delta).split("-").map(Number);
@@ -202,6 +197,8 @@ function initMonthView(container, schedule) {
   selected = pickDefaultDay();
   draw();
   container.querySelector(".timetable")?.classList.add("is-entering");
+  // Turning a tablet between list and calendar moves the open day's programs.
+  narrow.addEventListener("change", () => openUnderDay());
 }
 
 /* ---------- Boot ---------- */

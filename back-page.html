@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>The Back Page · Jeevan Jyoti, The Community Paper</title>
   <meta name="description" content="Puzzles, the almanac, and the weather: the back page of the Jeevan Jyoti community paper.">
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 40 Q16 52 32 53 Q48 52 50 40 Q41 43 32 43 Q23 43 14 40 Z M32 36 Q26 30 29 23 Q31 19 32 16 Q33 19 35 23 Q38 30 32 36 Z" fill="none" stroke="%231F2D50" stroke-width="3"/></svg>'>
+  <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/brand/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
   <!-- The masthead is inked once per visit: later pages in the same sitting
        open already printed. Runs before the stylesheets so nothing flickers. -->
   <script>try{if(sessionStorage.getItem("jj-press"))document.documentElement.classList.add("jj-pressed");else sessionStorage.setItem("jj-press","1")}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paper.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/motion.css">
@@ -33,17 +35,15 @@
 
     <header class="masthead masthead--compact">
       <div class="nameplate">
-        <span class="deva" lang="hi">जीवन ज्योति</span>
-        <h1 class="name">Jeevan Jyoti</h1>
-        <svg class="flourish" viewBox="0 0 360 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path pathLength="1" d="M6 11 Q 60 4 120 9 T 230 8 T 354 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-        </svg>
+        <h1 class="name"><img class="logo" src="/brand/jeevan-jyoti-logo-no-flags.svg" width="1180" height="366"
+          alt="Jeevan Jyoti"></h1>
         <span class="tagline">The Back Page</span>
       </div>
     </header>
 
     <nav class="paper-nav" aria-label="Main">
       <a href="index.html">Front Page</a>
+      <a href="month.html">This Month</a>
       <a href="about.html">About Us</a>
       <a href="contact.html">Contact</a>
       <a href="back-page.html" aria-current="page">The Back Page</a>
@@ -51,7 +51,6 @@
 
     <main id="main">
       <div class="section-head">
-        <span class="kicker">For a Quiet Afternoon</span>
         <h2>The Back Page</h2>
         <hr class="thick-thin">
         <p class="byline">Puzzles, the almanac, and the weather, to be done with a cup of tea
@@ -61,7 +60,6 @@
       <!-- Almanac -->
       <section class="feature" aria-labelledby="almanac-h">
         <div class="section-head">
-          <span class="kicker">The Almanac</span>
           <h2 id="almanac-h">On This Day</h2>
           <hr class="thick-thin">
         </div>
@@ -74,7 +72,6 @@
       <!-- Sudoku -->
       <section class="feature" aria-labelledby="sudoku-h">
         <div class="section-head">
-          <span class="kicker">Pencil &amp; Patience</span>
           <h2 id="sudoku-h">Sudoku</h2>
           <hr class="thick-thin">
           <p class="byline">Tap a square, then tap a number. Every row, column, and box holds
@@ -140,7 +137,6 @@
       <!-- Weather -->
       <section class="feature" aria-labelledby="weather-h">
         <div class="section-head">
-          <span class="kicker">From the Weather Bureau</span>
           <h2 id="weather-h">The Forecast</h2>
           <hr class="thick-thin">
           <p class="byline">For New City and all of Rockland County, by the National Weather Service.</p>
@@ -161,7 +157,6 @@
       <div class="foot-links">
         <a href="index.html">Front Page</a>
         <button type="button" class="linklike" onclick="window.print()">Print this page</button>
-        <a href="theme-editor.html">Theme Studio</a>
       </div>
     </footer>
   </div>

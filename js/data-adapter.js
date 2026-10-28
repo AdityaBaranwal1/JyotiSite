@@ -1,13 +1,7 @@
-/* data-adapter.js — the seam between the schedule renderer and whatever
-   backend the community eventually picks. The renderer only ever sees the
-   normalized shape below. To switch backends, change SOURCE and implement
-   the matching fetch — nothing else in the site changes.
-
-   SOURCE options:
-     "json"     — bundled data/schedule.json (default; editors replace the file
-                  or, later, a tiny script regenerates it)
-     "sheets"   — published Google Sheet CSV (no API key needed)   [stub]
-     "airtable" — Airtable REST API                                 [stub]   */
+/* data-adapter.js — the seam between the stored schedule (data/schedule.json,
+   written by the Editor's Desk) and the pages that print it. The renderer
+   only ever sees the normalized shape below, so the storage can change
+   without touching the pages. */
 
 /* rrule publishes a UMD `main` and an ESM `module` with no exports map, so
    Node and the bundler resolve different builds. A namespace import is the
@@ -18,7 +12,8 @@ import * as rrulePkg from "rrule";
 const pickRRule = (ns) => ns.RRule ?? ns.default?.RRule ?? ns.default;
 const RRule = pickRRule(rrulePkg);
 
-export const SOURCE = "json";
+import { isoOf } from "./dates.js";
+
 export const SCHEDULE_URL = "data/schedule.json";
 const CACHE_KEY = "jyoti-schedule-cache";
 
@@ -37,9 +32,7 @@ const CACHE_KEY = "jyoti-schedule-cache";
    far as the horizon: the end of the month a year from today, so readers can
    always look a full year ahead and the paper never quietly runs dry. */
 
-const pad = (n) => String(n).padStart(2, "0");
-const isoOfUTC = (d) =>
-  `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+const isoOfUTC = (d) => d.toISOString().slice(0, 10);
 
 function utcMidnight(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
@@ -49,8 +42,7 @@ function utcMidnight(iso) {
 
 /* The last day of the month twelve months after `now`, as a date label. */
 export function defaultHorizon(now = new Date()) {
-  const end = new Date(now.getFullYear(), now.getMonth() + 13, 0);
-  return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+  return isoOf(new Date(now.getFullYear(), now.getMonth() + 13, 0));
 }
 
 /* The weekly programs still running on `today`: not yet ended, whether or not
@@ -73,9 +65,12 @@ export function describeSeries(s) {
   }
 }
 
-/* `includeSkipped` is for the volunteers' desk: readers should never see a
-   day that was taken off, but an editor needs to see it in order to put it
-   back. */
+/* An exception's own markers; anything else it carries is a changed detail. */
+const MARKS = new Set(["seriesId", "date", "cancelled", "skip"]);
+
+/* `includeSkipped` is for the volunteers' desk. Older papers could take a
+   date off entirely ("skip"); readers never see that day, but the desk shows
+   it as cancelled so a volunteer can put it back on. */
 export function expandSeries(series, exceptions = [], { includeSkipped = false, horizon } = {}) {
   if (!Array.isArray(series)) return [];
   const openEnd = horizon ?? defaultHorizon();
@@ -108,8 +103,8 @@ export function expandSeries(series, exceptions = [], { includeSkipped = false, 
       const ex = byKey.get(`${s.id}@${date}`) ?? null;
       if (ex?.skip && !includeSkipped) continue;   // no program that day at all
       out.push({
-        skipped: Boolean(ex?.skip),
-        hasException: Boolean(ex),
+        // details differ from the usual for this date (not just cancelled)
+        changed: Boolean(ex) && Object.keys(ex).some((k) => !MARKS.has(k)),
         title: ex?.title ?? s.title,
         shortTitle: ex?.shortTitle ?? s.shortTitle ?? s.title,
         description: ex?.description ?? s.description,
@@ -120,7 +115,7 @@ export function expandSeries(series, exceptions = [], { includeSkipped = false, 
         // an exception may deliberately clear the link (a cancelled talk),
         // so presence of the key matters, not its truthiness
         zoomLink: has(ex, "zoomLink") ? ex.zoomLink : s.zoomLink,
-        cancelled: ex?.cancelled ?? false,
+        cancelled: Boolean(ex?.cancelled || ex?.skip),
         isNew: ex?.isNew ?? false,
         seriesId: s.id,
       });
@@ -131,23 +126,37 @@ export function expandSeries(series, exceptions = [], { includeSkipped = false, 
 
 /* ---------- Normalization ---------- */
 
+export const isHttpUrl = (s) => /^https?:\/\//i.test(String(s ?? "").trim());
+
+/* How people join a program, from its stored link: "default" (the usual
+   Zoom room), "custom" (a link of its own), or "phone" (call to register). */
+export function zoomKind(link) {
+  if (link === "default") return "default";
+  return isHttpUrl(link) ? "custom" : "phone";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{1,2}:\d{2}$/;
+
+/* The least a one-off event needs to be printed: a name, a date, a start. */
+export const isValidEvent = (raw) =>
+  Boolean(raw && typeof raw === "object" && String(raw.title ?? "").trim() &&
+    DATE_RE.test(String(raw.date ?? "").trim()) && TIME_RE.test(String(raw.startTime ?? "").trim()));
+
 const truthy = (v) =>
   v === true || v === 1 || /^(true|yes|y|1|cancelled)$/i.test(String(v ?? "").trim());
 
 export function normalizeEvent(raw, defaultZoomLink = null) {
-  if (!raw || typeof raw !== "object") return null;
-  const title = String(raw.title ?? "").trim();
-  const date = String(raw.date ?? "").trim();
-  const startTime = String(raw.startTime ?? "").trim();
-  if (!title) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  if (!/^\d{1,2}:\d{2}$/.test(startTime)) return null;
+  if (!isValidEvent(raw)) return null;
+  const title = String(raw.title).trim();
+  const date = String(raw.date).trim();
+  const startTime = String(raw.startTime).trim();
 
   // "default" points at the schedule-wide default Zoom room, so the link can
   // change once (in the admin) and every event follows it.
   let zoomLink = String(raw.zoomLink ?? "").trim();
   if (zoomLink === "default") zoomLink = defaultZoomLink ?? "";
-  if (!/^https?:\/\//i.test(zoomLink)) zoomLink = null;
+  if (!isHttpUrl(zoomLink)) zoomLink = null;
 
   return {
     title,
@@ -159,7 +168,7 @@ export function normalizeEvent(raw, defaultZoomLink = null) {
     category: String(raw.category ?? "").trim(),
     date,
     startTime,
-    endTime: /^\d{1,2}:\d{2}$/.test(String(raw.endTime ?? "").trim())
+    endTime: TIME_RE.test(String(raw.endTime ?? "").trim())
       ? String(raw.endTime).trim()
       : null,
     zoomLink,
@@ -172,7 +181,7 @@ export function normalizeEvent(raw, defaultZoomLink = null) {
 export function normalizeSchedule(raw, { horizon } = {}) {
   const r = raw && typeof raw === "object" ? raw : {};
   let defaultZoomLink = String(r.defaultZoomLink ?? "").trim();
-  if (!/^https?:\/\//i.test(defaultZoomLink)) defaultZoomLink = null;
+  if (!isHttpUrl(defaultZoomLink)) defaultZoomLink = null;
   // Standing programs expand first, then one-off events are layered on top.
   const expanded = expandSeries(r.series, r.exceptions, { horizon });
   const oneOffs = Array.isArray(r.events) ? r.events : [];
@@ -214,9 +223,3 @@ export async function getSchedule({ fetchImpl, storage, url } = {}) {
     return { ok: false, stale: false, schedule: null };
   }
 }
-
-/* ---------- Future backends (Phase 2 seams) ----------
-   sheets:   fetch `https://docs.google.com/spreadsheets/d/e/<id>/pub?output=csv`,
-             parse rows to the raw event shape, feed through normalizeSchedule.
-   airtable: fetch `https://api.airtable.com/v0/<base>/<table>` with a read-only
-             token, map records[].fields to the raw event shape, normalize.   */

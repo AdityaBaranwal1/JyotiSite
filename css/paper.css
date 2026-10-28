@@ -16,7 +16,6 @@
   /* -- Type -- */
   --font-head: "Lora", Georgia, "Times New Roman", serif;
   --font-body: "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
-  --font-deva: "Tiro Devanagari Hindi", "Nirmala UI", serif;
 
   /* -- Size system: body size editable 17–24px, reader scale on top -- */
   --text-base: 19px;
@@ -35,7 +34,7 @@
   --ease-pen:  cubic-bezier(0.65, 0, 0.35, 1);
   --dur-touch: 150ms;   /* hover and press feedback */
   --dur-ink:   560ms;   /* content arriving on the page */
-  --dur-pen:   900ms;   /* a rule or flourish being drawn */
+  --dur-pen:   900ms;   /* a rule being drawn */
 }
 
 /* ---------- Reset (small, honest) ---------- */
@@ -105,27 +104,12 @@ p  {
   text-wrap: pretty;   /* no one-word last lines */
 }
 
-/* Justify editorial copy on comfortable measures (left-aligned on phones,
-   where justification opens ugly rivers). */
-@media (min-width: 560px) {
-  p.dropcap,
-  .editors-note p,
-  .article p,
-  .columns p {
-    text-align: justify;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-  }
-}
-
-/* Newspaper multi-column running text. column-width lets the browser drop to
-   a single column when the page is narrow or zoomed — never tiny columns. */
-.columns {
-  column-width: 300px;
-  column-gap: 34px;
-  column-rule: var(--hairline);
-}
+/* Running text stays in one left-aligned column: justified lines open uneven
+   gaps between words, and a sentence that jumps to a second column is easy to
+   lose. Both are harder going for older eyes than a plain ragged right. */
+.columns { max-width: var(--measure); }
 .columns > :first-child { margin-top: 0; }
+.columns p + p { margin-top: 0.9em; }
 
 a {
   color: var(--ink);
@@ -144,13 +128,13 @@ a { transition: background-color var(--dur-touch) ease-out; }
   border-radius: 0;
 }
 
-/* Kicker — the all-caps label newspapers set above a headline */
+/* Kicker: a short label for a box or strip ("Address", "Call us"), in
+   plain bold type. Never tracked capitals: words in capitals lose the shape
+   older eyes read them by. */
 .kicker {
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: max(17px, calc(var(--text-size) * 0.85));
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
 }
 
 /* Standfirst / deck — the italic serif intro line under a headline */
@@ -177,13 +161,13 @@ a { transition: background-color var(--dur-touch) ease-out; }
 }
 
 /* ---------- Rules: the only depth this paper has ----------
-   Two-ink printing: the thick bar runs in the second ink (marigold),
-   the thin line in the first (indigo) — like a spot-color broadsheet. */
+   One bar of the second ink (marigold) under a headline: the spot colour
+   of a two-ink paper. One rule per head; a second line under it only read
+   as a stray. (The class keeps its old name; every page uses it.) */
 hr.thick-thin {
   border: 0;
-  border-top: 3px solid var(--accent);
-  border-bottom: var(--hairline);
-  height: 4px;
+  border-top: 4px solid var(--accent);
+  height: 0;
   margin: 0;
 }
 hr.hairline {
@@ -198,7 +182,6 @@ hr.hairline {
   border: 2px solid var(--ink);
   padding: 20px;
 }
-.panel--ruled { border-width: 1px; }
 
 /* ---------- Buttons: the one modern affordance, framed in ink ---------- */
 .btn {

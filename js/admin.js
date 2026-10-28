@@ -1,16 +1,18 @@
 /* admin.js — the Editor's Desk. Volunteers sign in with the shared password
    and change the paper directly: every change is saved the moment it is
-   made, and an Undo button takes back the last one. There is no separate
-   "publish" step to forget.
+   made, and Undo takes changes back one at a time, saying each time exactly
+   which change it is. There is no separate "publish" step to forget.
 
    The desk is written for volunteers who are seniors themselves: one button
-   per job, plain words, and nothing that cannot be taken back. */
+   per job, plain words, one calendar, and nothing that cannot be taken back. */
 
-import { dayLabel, timeRange, weekLabelFor, monthTitle, isToday, formatTime } from "./schedule.js";
-import { expandSeries, describeSeries, activeSeries } from "./data-adapter.js";
+import { timeRange, weekLabelFor, monthTitle, isToday, formatTime, el, byStartTime } from "./schedule.js";
+import { expandSeries, describeSeries, activeSeries, zoomKind, isHttpUrl } from "./data-adapter.js";
+import { isoOf, todayIso, dateOf, mondayOf, addDays, longDate, monthCells, groupBy, SHORT_DAYS } from "./dates.js";
 import {
-  WEEKDAYS, weekdayOf, addSeries, changeSeries, stopSeries, handChangesFrom,
-} from "./series-edit.js";
+  WEEKDAYS, weekdayOf, weekdayOfDate, dayName, addSeries, changeSeries, stopSeries, handChangesFrom,
+  setCancelled, resetDate, writeDate, addEvent, deleteEvent,
+} from "./schedule-edit.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -20,53 +22,54 @@ let view = "week";               // "week" | "month"
 let anchor = new Date();         // the date the current view centres on
 let editing = null;              // what the editor dialog is working on (see openEditor)
 
-const isoOf = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const todayIso = () => isoOf(new Date());
-const mondayOf = (d) => {
-  const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
-  return m;
-};
-const dateOf = (iso) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
-};
-const dayName = (code) => WEEKDAYS.find(([c]) => c === code)?.[1] ?? "";
+/* ---------- talking to the server ---------- */
+async function api(method, url, body) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "content-type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => ({})) : {};
+  return { ok: Boolean(res?.ok), status: res?.status ?? 0, data, error: data?.error ?? null };
+}
 
-/* ---------- occurrences ----------
+/* ---------- dates on the desk ----------
    The week a volunteer sees is not the events array: it is the weekly
    programs expanded, their per-date changes applied, and the one-off events
-   laid on top. Every row remembers where it came from, because that decides
-   what changing it should write — an event, or a change for one date. */
+   laid on top. Every date remembers where it came from (see
+   js/schedule-edit.js), because that decides what changing it writes. These
+   are worked out again only when the paper changes, not on every redraw. */
 let occurrences = new Map();
+let seriesIndex = new Map();
+let datesInOrder = [];
 
-const seriesById = (id) => (schedule.series ?? []).find((s) => s.id === id) ?? null;
-const exceptionIndexOf = (seriesId, date) =>
-  (schedule.exceptions ?? []).findIndex((x) => x.seriesId === seriesId && x.date === date);
-
-function rebuildOccurrences() {
-  occurrences = new Map();
-  const push = (o) => {
-    if (!occurrences.has(o.date)) occurrences.set(o.date, []);
-    occurrences.get(o.date).push(o);
-  };
-  for (const o of expandSeries(schedule.series ?? [], schedule.exceptions ?? [], { includeSkipped: true })) {
-    push({ ...o, kind: "series" });
-  }
-  (schedule.events ?? []).forEach((e, i) => push({ ...e, kind: "once", eventIndex: i }));
-  for (const list of occurrences.values()) {
-    list.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
-  }
+function rebuild() {
+  seriesIndex = new Map((schedule.series ?? []).map((s) => [s.id, s]));
+  occurrences = groupBy([
+    ...expandSeries(schedule.series, schedule.exceptions, { includeSkipped: true })
+      .map((o) => ({ ...o, kind: "series" })),
+    ...(schedule.events ?? []).map((e, i) => ({ ...e, kind: "once", eventIndex: i, cancelled: Boolean(e.cancelled) })),
+  ], (o) => o.date);
+  for (const list of occurrences.values()) list.sort(byStartTime);
+  datesInOrder = [...occurrences.keys()].sort();
 }
 
 const occurrencesOn = (iso) => occurrences.get(iso) ?? [];
 
+/* The first date on or after `fromIso` that a weekly program is on the paper:
+   the date a change "every week from now" really begins. */
+const nextDateOf = (seriesId, fromIso) =>
+  datesInOrder.find((iso) => iso >= fromIso &&
+    occurrencesOn(iso).some((o) => o.kind === "series" && o.seriesId === seriesId)) ?? null;
+const latest = (a, b) => (a > b ? a : b);
+
 /* ---------- saving: every change, straight away ----------
-   `change` edits the schedule in place, or returns a new one. The paper as it
-   was is held for Undo. Saves go one at a time, in order; if one fails, the
-   desk goes back to the paper as it was and says so plainly. */
-let undoTo = null;
+   `change` takes the schedule and returns the changed one. The paper as it
+   was is kept for Undo, with the change described in words. Saves go one at
+   a time, in order; if one fails, the desk goes back to the paper as it was
+   and says so plainly. */
+const undoStack = [];            // { before, label, date }, newest last
+const UNDO_KEEP = 25;
 let saving = Promise.resolve();
 let pending = 0;
 
@@ -78,54 +81,92 @@ const payload = (s) => ({
   events: s.events ?? [],
 });
 
-function status(text, { undo = false } = {}) {
-  $("#save-status").textContent = text;
-  $("#undo").hidden = !undo;
+/* The save bar reads like a receipt: a word for what happened ("Saved",
+   "Undone"), the change itself in full, and a quiet line for what comes
+   next. Read aloud it is one sentence: "Saved: Yoga cancelled on Monday,
+   November 2. Readers see it now." `reassure` marks a line a phone can do
+   without, because the word already says it. */
+function status({ word = "", change = "", note = "", kind = "info", reassure = false } = {}) {
+  const host = $("#save-status");
+  host.dataset.kind = kind;
+  const parts = [];
+  if (word) {
+    const w = el("span", "save-word", word);
+    if (change) w.append(el("span", "visually-hidden", ":"));
+    parts.push(w, " ");
+  }
+  if (change) parts.push(el("strong", null, change), ". ");
+  if (note) parts.push(el("span", "save-note" + (reassure ? " save-note--reassure" : ""), note));
+  host.replaceChildren(...parts);
+  const next = undoStack.at(-1);
+  $("#undo").hidden = !next;
+  if (next) $("#undo").setAttribute("aria-label", `Undo: ${next.label}`);
 }
 
-function commit(message, change, { undoable = true } = {}) {
-  const before = structuredClone(schedule);
-  const result = change();
-  if (result) schedule = result;
-  draw();
-  status("Saving…");
+function commit(label, change, { date = null, isUndo = false } = {}) {
+  const before = schedule;
+  schedule = change(schedule);
+  refresh();
+  status({ word: "Saving…", kind: "working" });
   pending++;
   saving = saving.then(async () => {
-    const res = await fetch("/api/schedule", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload(schedule)),
-    }).catch(() => null);
+    const res = await api("PUT", "/api/schedule", payload(schedule));
     pending--;
-    if (res && res.ok) {
-      undoTo = undoable ? before : null;
-      status(`${message} Readers see it now.`, { undo: undoable });
+    if (res.ok) {
+      if (!isUndo) {
+        undoStack.push({ before, label, date });
+        if (undoStack.length > UNDO_KEEP) undoStack.shift();
+      }
+      announce(isUndo ? "undone" : "saved", label);
+      if (date) markChanged(date);
       drawEditions();
       return true;
     }
     schedule = before;
-    draw();
+    refresh();
     fillSettings();
-    if (res && res.status === 401) {
+    if (res.status === 401) {
       showLogin("You were signed out, so that last change was not saved. Please sign in again.");
       return false;
     }
-    const body = res ? await res.json().catch(() => ({})) : {};
-    status(body.error
-      ? `${body.error} Nothing was changed.`
-      : "That change did not go through, so nothing was changed. Please check the internet connection and try again.");
+    status({ word: "Not saved", kind: "error", note: res.error
+      ? `${res.error} Nothing was changed.`
+      : "That change did not go through, so nothing was changed. Please check the internet connection and try again." });
     return false;
   });
   return saving;
 }
 
-$("#undo").addEventListener("click", () => {
-  const to = undoTo;
-  if (!to) return;
-  undoTo = null;
-  commit("Your last change is undone.", () => to, { undoable: false })
-    .then(() => fillSettings());
+function announce(kind, label) {
+  if (kind === "saved") {
+    status({ word: "Saved", change: label, note: "Readers see it now.", kind, reassure: true });
+    return;
+  }
+  const next = undoStack.at(-1);
+  status(next
+    ? { word: "Undone", change: label, note: `Press Undo again to take back: ${next.label}.`, kind }
+    : { word: "Undone", change: label, note: "Readers see it now.", kind, reassure: true });
+}
+
+$("#undo").addEventListener("click", async () => {
+  const last = undoStack.pop();
+  if (!last) return;
+  if (last.date) anchor = dateOf(last.date);      // show the date being put back
+  const ok = await commit(last.label, () => last.before, { date: last.date, isUndo: true });
+  if (!ok) undoStack.push(last);
+  fillSettings();
 });
+
+/* Tint the day a change landed on for a moment, so the volunteer sees it. */
+function markChanged(iso) {
+  for (const n of document.querySelectorAll(`[data-iso="${iso}"]`)) {
+    n.classList.remove("just-changed");
+    void n.offsetWidth;            // restart the tint if it is already showing
+    n.classList.add("just-changed");
+    setTimeout(() => n.classList.remove("just-changed"), 2600);
+    if (n.offsetParent) n.scrollIntoView({ block: "nearest" });
+  }
+}
 
 window.addEventListener("beforeunload", (e) => {
   if (pending > 0 || noteChanged() || zoomChanged()) e.preventDefault();
@@ -140,8 +181,8 @@ function showLogin(message = "") {
 }
 
 async function boot() {
-  const me = await fetch("/api/me").then((r) => r.json()).catch(() => ({ signedIn: false }));
-  if (me.signedIn) return openDesk();
+  const me = await api("GET", "/api/me");
+  if (me.data?.signedIn) return openDesk();
   showLogin();
 }
 
@@ -152,14 +193,9 @@ $("#login-show").addEventListener("change", (e) => {
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("#login-msg").textContent = "";
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ password: $("#login-pass").value }),
-  }).catch(() => null);
-  if (!res || !res.ok) {
-    const body = res ? await res.json().catch(() => ({})) : {};
-    $("#login-msg").textContent = body.error || "Signing in didn't work. Please try again.";
+  const res = await api("POST", "/api/login", { password: $("#login-pass").value });
+  if (!res.ok) {
+    $("#login-msg").textContent = res.error || "Signing in didn't work. Please try again.";
     return;
   }
   $("#login-view").hidden = true;
@@ -169,30 +205,35 @@ $("#login-form").addEventListener("submit", async (e) => {
 $("#signout").addEventListener("click", async () => {
   if ((noteChanged() || zoomChanged()) &&
       !confirm("The note or the Zoom link has changes you have not saved. Sign out anyway?")) return;
-  await fetch("/api/logout", { method: "POST" });
+  await api("POST", "/api/logout");
   location.reload();
 });
 
+async function loadSchedule() {
+  const res = await api("GET", "/api/schedule/raw");
+  if (!res.ok) { showLogin(); return false; }
+  schedule = { series: [], exceptions: [], events: [], ...res.data };
+  fillSettings();
+  refresh();
+  drawEditions();
+  return true;
+}
+
 async function openDesk() {
-  const res = await fetch("/api/schedule/raw");
-  if (!res.ok) { showLogin(); return; }
-  schedule = await res.json();
-  schedule.series ??= [];
-  schedule.exceptions ??= [];
-  schedule.events ??= [];
-  undoTo = null;
+  undoStack.length = 0;
+  if (!(await loadSchedule())) return;
   $("#desk-view").hidden = false;
   $("#signout").hidden = false;
-  fillSettings();
-  status("Changes go on the paper straight away.");
-  draw();
-  drawEditions();
+  status({ note: "Changes show on the paper as soon as you make them." });
 }
 
 /* ---------- view plumbing ---------- */
-function draw() {
-  rebuildOccurrences();
-  drawWeekly();
+function refresh() {      // the paper changed
+  rebuild();
+  draw();
+}
+
+function draw() {         // only the view changed
   const week = view === "week";
   $("#view-week").setAttribute("aria-pressed", String(week));
   $("#view-month").setAttribute("aria-pressed", String(!week));
@@ -214,8 +255,8 @@ function draw() {
 
 $("#view-week").addEventListener("click", () => { view = "week"; draw(); });
 $("#view-month").addEventListener("click", () => { view = "month"; draw(); });
-$("#range-prev").addEventListener("click", () => { step(-1); });
-$("#range-next").addEventListener("click", () => { step(1); });
+$("#range-prev").addEventListener("click", () => step(-1));
+$("#range-next").addEventListener("click", () => step(1));
 $("#range-today").addEventListener("click", () => { anchor = new Date(); draw(); });
 function step(dir) {
   if (view === "week") anchor.setDate(anchor.getDate() + 7 * dir);
@@ -223,224 +264,112 @@ function step(dir) {
   draw();
 }
 
-function joinLabel(e) {
-  if (e.zoomLink === "default") return "Usual Zoom room";
-  if (/^https?:\/\//.test(e.zoomLink || "")) return "Special Zoom link";
-  return "Call to register";
-}
-
-/* ---------- week view ---------- */
-function drawWeek() {
-  const panel = $("#week-panel");
-  panel.textContent = "";
-  const monday = mondayOf(anchor);
-  for (let d = 0; d < 7; d++) {
-    const day = new Date(monday);
-    day.setDate(day.getDate() + d);
-    const iso = isoOf(day);
-
-    const sec = document.createElement("section");
-    sec.className = "desk-day";
-    const head = document.createElement("div");
-    head.className = "desk-day-head";
-    const name = document.createElement("span");
-    name.className = "day-name";
-    name.textContent = dayLabel(iso) + (isToday(iso) ? "  ·  TODAY" : "");
-    head.appendChild(name);
-    sec.appendChild(head);
-
-    const todays = occurrencesOn(iso);
-    if (todays.length === 0) {
-      const none = document.createElement("p");
-      none.className = "desk-empty";
-      none.textContent = "Nothing on this day.";
-      sec.appendChild(none);
-    }
-    for (const e of todays) sec.appendChild(eventRow(e));
-
-    const add = document.createElement("button");
-    add.type = "button";
-    add.className = "btn btn--quiet desk-add";
-    add.textContent = `+ Add a program on ${dayLabel(iso)}`;
-    add.addEventListener("click", () => openEditor({ mode: "date", presetDate: iso }));
-    sec.appendChild(add);
-
-    panel.appendChild(sec);
-  }
-}
-
-/* One row of the desk: the program, what has happened to it, and two
-   buttons — change it, or cancel it for this date. Cancelling keeps it on
-   the paper with a CANCELLED stamp, so nobody turns up to an empty room. */
-function eventRow(o, { onEdit } = {}) {
-  const row = document.createElement("div");
-  row.className = "desk-event"
-    + (o.cancelled ? " is-cancelled" : "")
-    + (o.skipped ? " is-skipped" : "");
-
-  const what = document.createElement("span");
-  what.className = "de-what";
-  const strong = document.createElement("strong");
-  strong.textContent = o.title;
-  what.appendChild(strong);
-  what.appendChild(document.createTextNode(` · ${timeRange(o.startTime, o.endTime)} · ${joinLabel(o)}`));
-
-  if (o.kind === "series") {
-    const s = seriesById(o.seriesId);
-    const origin = document.createElement("span");
-    origin.className = "de-origin";
-    origin.textContent = s ? describeSeries(s) : "Every week";
-    what.appendChild(origin);
-  }
-  row.appendChild(what);
-
-  const state = stateOf(o);
-  if (state) {
-    const badge = document.createElement("span");
-    badge.className = `de-state de-state--${state.key}`;
-    badge.textContent = state.label;
-    row.appendChild(badge);
-  }
-
-  const actions = document.createElement("span");
-  actions.className = "de-actions";
-  const on = dayLabel(o.date);
-
-  if (o.skipped) {
-    // Older papers could take a date off entirely; it can still be put back.
-    actions.appendChild(button("Put it back", "de-restore", () =>
-      commit(`${o.title} is back on ${on}.`, () => removeException(o.seriesId, o.date)),
-      `Put ${o.title} back on ${on}`));
-  } else {
-    actions.appendChild(button("Change ✎", "de-edit",
-      () => (onEdit ? onEdit(o) : openEditor({ mode: "date", occurrence: o })),
-      `Change ${o.title} on ${on}`));
-    const off = o.cancelled;
-    actions.appendChild(button(off ? "Put it back on" : "Cancel this date", "de-cancel", () =>
-      commit(off ? `${o.title} is back on for ${on}.` : `${o.title} is cancelled for ${on}.`,
-        () => setCancelled(o, !off)),
-      off ? `Put ${o.title} back on, ${on}` : `Cancel ${o.title} on ${on}`));
-  }
-  row.appendChild(actions);
-  return row;
-}
+const JOIN_LABEL = { default: "in the usual Zoom room", custom: "with a special Zoom link", phone: "people call to register" };
+const emptyNote = (text) => el("p", "desk-empty", text);
 
 function button(label, cls, onClick, ariaLabel) {
-  const b = document.createElement("button");
+  const b = el("button", `btn btn--quiet ${cls}`, label);
   b.type = "button";
-  b.className = `btn btn--quiet ${cls}`;
-  b.textContent = label;
   if (ariaLabel) b.setAttribute("aria-label", ariaLabel);
   b.addEventListener("click", onClick);
   return b;
 }
 
-/* Plain words for what has happened to this date, or null when it is simply
-   the usual program at the usual hour. */
-function stateOf(o) {
-  if (o.skipped) return { key: "off", label: "Off this week" };
-  if (o.cancelled) return { key: "cancelled", label: "Cancelled" };
-  if (o.kind === "once") return { key: "once", label: "Just this once" };
-  if (o.hasException) return { key: "changed", label: "Changed this week" };
-  return null;
+/* ---------- week view ---------- */
+function drawWeek() {
+  const panel = $("#week-panel");
+  const monday = isoOf(mondayOf(anchor));
+  const days = Array.from({ length: 7 }, (_, d) => {
+    const iso = addDays(monday, d);
+    const sec = el("section", "desk-day");
+    sec.dataset.iso = iso;
+    const head = el("div", "desk-day-head");
+    head.append(el("span", "day-name", longDate(iso)));
+    if (isToday(iso)) head.append(el("span", "day-today", "Today"));
+    sec.append(head);
+
+    const todays = occurrencesOn(iso);
+    if (todays.length === 0) sec.append(emptyNote("Nothing on this day."));
+    for (const o of todays) sec.append(eventRow(o));
+    sec.append(button(`+ Add a program on ${longDate(iso)}`, "desk-add", () => openEditor({ presetDate: iso })));
+    return sec;
+  });
+  panel.replaceChildren(...days);
 }
 
-function setCancelled(o, cancelled) {
+/* One row of the desk: the program, what has happened to it, and two
+   buttons — change it, or cancel it for this date. Cancelling keeps it on
+   the paper with a CANCELLED stamp, so nobody turns up to an empty room. */
+function eventRow(o, { onEdit = (occ) => openEditor({ occurrence: occ }) } = {}) {
+  const row = el("div", "desk-event" + (o.cancelled ? " is-cancelled" : ""));
+
+  const what = el("span", "de-what");
+  what.append(el("strong", "de-title", o.title),
+    el("span", "de-when", `${timeRange(o.startTime, o.endTime)}, ${JOIN_LABEL[zoomKind(o.zoomLink)]}`));
   if (o.kind === "series") {
-    patchException(o, { cancelled: cancelled ? true : undefined });
-  } else {
-    const e = { ...schedule.events[o.eventIndex] };
-    if (cancelled) e.cancelled = true; else delete e.cancelled;
-    schedule.events[o.eventIndex] = e;
+    const s = seriesIndex.get(o.seriesId);
+    what.append(el("span", "de-origin", (s && describeSeries(s)) || "Every week"));
   }
+  row.append(what);
+
+  const state = stateOf(o);
+  if (state) row.append(el("span", `de-state de-state--${state.key}`, state.label));
+
+  const on = longDate(o.date);
+  const off = o.cancelled;
+  const actions = el("span", "de-actions");
+  actions.append(
+    button("Change ✎", "de-edit", () => onEdit(o), `Change ${o.title} on ${on}`),
+    button(off ? "Put it back on" : "Cancel this date", "de-cancel", () =>
+      commit(off ? `${o.title} back on for ${on}` : `${o.title} cancelled on ${on}`,
+        (s) => setCancelled(s, o, !off), { date: o.date }),
+    off ? `Put ${o.title} back on, ${on}` : `Cancel ${o.title} on ${on}`),
+  );
+  row.append(actions);
+  return row;
 }
 
-/* ---------- changes for one date ----------
-   A change for one date records only what differs from the weekly program,
-   so a later change to the program still flows through everything it does
-   not contradict. When nothing differs any more, the record is deleted
-   rather than left behind empty. */
-function writeException(ex) {
-  schedule.exceptions ??= [];
-  const i = exceptionIndexOf(ex.seriesId, ex.date);
-  const bare = Object.keys(ex).length <= 2;   // seriesId + date only
-  if (bare) { if (i >= 0) schedule.exceptions.splice(i, 1); return; }
-  if (i >= 0) schedule.exceptions[i] = ex; else schedule.exceptions.push(ex);
-}
-
-function removeException(seriesId, date) {
-  const i = exceptionIndexOf(seriesId, date);
-  if (i >= 0) schedule.exceptions.splice(i, 1);
-}
-
-/* Merge a change into whatever this date already carries. */
-function patchException(o, changes) {
-  const i = exceptionIndexOf(o.seriesId, o.date);
-  const current = i >= 0 ? { ...schedule.exceptions[i] } : { seriesId: o.seriesId, date: o.date };
-  for (const [k, v] of Object.entries(changes)) {
-    if (v === undefined) delete current[k]; else current[k] = v;
-  }
-  writeException(current);
+/* Plain words for what has happened to this date, or null when it is simply
+   the usual program at the usual hour. Like everything on the desk, this is
+   read from the paper itself, so it stays for as long as the change does. */
+function stateOf(o) {
+  if (o.cancelled) return { key: "cancelled", label: "Cancelled" };
+  if (o.kind === "once") return { key: "once", label: "One time only" };
+  if (o.changed) return { key: "changed", label: "Changed for this date" };
+  return null;
 }
 
 /* ---------- month view ---------- */
 function drawMonth() {
-  const panel = $("#month-panel");
-  panel.textContent = "";
-  const y = anchor.getFullYear(), m = anchor.getMonth();
-  const grid = document.createElement("div");
-  grid.className = "cal-grid";
-  for (const dow of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
-    const h = document.createElement("div");
-    h.className = "cal-dow";
-    h.textContent = dow;
-    grid.appendChild(h);
-  }
-  const first = new Date(y, m, 1);
-  const lead = (first.getDay() + 6) % 7; // Monday-start offset
-  for (let i = 0; i < lead; i++) {
-    const pad = document.createElement("button");
-    pad.type = "button"; pad.className = "cal-cell"; pad.disabled = true;
-    grid.appendChild(pad);
-  }
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = isoOf(new Date(y, m, d));
+  const y = anchor.getFullYear(), m1 = anchor.getMonth() + 1;
+  const { lead, isos, trail } = monthCells(y, m1);
+  const grid = el("div", "cal-grid");
+  for (let i = 1; i <= 7; i++) grid.append(el("div", "cal-dow", SHORT_DAYS[i % 7]));
+  const pad = () => {
+    const c = el("button", "cal-cell");
+    c.type = "button"; c.disabled = true;
+    return c;
+  };
+  for (let i = 0; i < lead; i++) grid.append(pad());
+  for (const iso of isos) {
     const todays = occurrencesOn(iso);
-    const cell = document.createElement("button");
-    cell.type = "button";
-    cell.className = "cal-cell"
+    const cell = el("button", "cal-cell"
       + (isToday(iso) ? " is-today" : "")
-      + (todays.length ? " has-events" : "");
+      + (todays.length ? " has-events" : ""));
+    cell.type = "button";
+    cell.dataset.iso = iso;
     cell.setAttribute("aria-label",
-      `${dayLabel(iso)}: ${todays.length} program${todays.length === 1 ? "" : "s"}. Press to change this day.`);
-    const num = document.createElement("span");
-    num.className = "cal-date"; num.textContent = d;
-    cell.appendChild(num);
-    todays.slice(0, 2).forEach((e) => {
-      const t = document.createElement("span");
-      t.className = "cal-ev" + (e.cancelled ? " is-cancelled" : "");
-      t.textContent = e.title;
-      cell.appendChild(t);
-    });
-    if (todays.length > 2) {
-      const more = document.createElement("span");
-      more.className = "cal-more"; more.textContent = `+${todays.length - 2} more`;
-      cell.appendChild(more);
-    }
-    if (todays.length) {
-      const dots = document.createElement("span");
-      dots.className = "cal-dots"; dots.textContent = "●".repeat(Math.min(todays.length, 4));
-      cell.appendChild(dots);
-    }
+      `${longDate(iso)}: ${todays.length} program${todays.length === 1 ? "" : "s"}. Press to change this day.`);
+    cell.append(el("span", "cal-date", String(dateOf(iso).getDate())));
+    for (const o of todays.slice(0, 2)) cell.append(el("span", "cal-ev" + (o.cancelled ? " is-cancelled" : ""), o.title));
+    if (todays.length > 2) cell.append(el("span", "cal-more", `+${todays.length - 2} more`));
+    if (todays.length) cell.append(el("span", "cal-dots", "●".repeat(Math.min(todays.length, 4))));
     cell.addEventListener("click", () => openDayEditor(iso));
-    grid.appendChild(cell);
+    grid.append(cell);
   }
-  panel.appendChild(grid);
-  const hint = document.createElement("p");
-  hint.className = "byline";
-  hint.textContent = "Press any date to see and change that day's programs.";
-  panel.appendChild(hint);
+  for (let i = 0; i < trail; i++) grid.append(pad());
+  $("#month-panel").replaceChildren(grid,
+    el("p", "byline", "Press any date to see and change that day's programs."));
 }
 
 /* ---------- one day: press a date in the month view ---------- */
@@ -449,82 +378,30 @@ let dayDialogIso = null;
 
 function openDayEditor(iso) {
   dayDialogIso = iso;
-  $("#day-dialog-title").textContent = dayLabel(iso);
+  $("#day-dialog-title").textContent = longDate(iso);
   drawDayList();
   dayDialog.showModal();
 }
 
 function drawDayList() {
-  const list = $("#day-dialog-list");
-  list.textContent = "";
   const todays = occurrencesOn(dayDialogIso);
-  if (todays.length === 0) {
-    const none = document.createElement("p");
-    none.className = "desk-empty";
-    none.textContent = "Nothing on this day yet.";
-    list.appendChild(none);
-  }
-  for (const e of todays) {
-    list.appendChild(eventRow(e, {
-      onEdit: (occ) => { dayDialog.close(); openEditor({ mode: "date", occurrence: occ }); },
-    }));
-  }
+  const edit = (occ) => { dayDialog.close(); openEditor({ occurrence: occ }); };
+  $("#day-dialog-list").replaceChildren(
+    ...(todays.length ? todays.map((o) => eventRow(o, { onEdit: edit })) : [emptyNote("Nothing on this day yet.")]));
 }
 
 $("#day-add").addEventListener("click", () => {
-  const iso = dayDialogIso;
   dayDialog.close();
-  openEditor({ mode: "date", presetDate: iso });
+  openEditor({ presetDate: dayDialogIso });
 });
 $("#day-close").addEventListener("click", () => dayDialog.close());
-
-/* ---------- weekly programs ---------- */
-function drawWeekly() {
-  const host = $("#weekly-list");
-  host.textContent = "";
-  const today = todayIso();
-  const order = (s) => {
-    const i = WEEKDAYS.findIndex(([c]) => c === weekdayOf(s.rrule));
-    return `${i < 0 ? 9 : i}${s.startTime}`;
-  };
-  const list = activeSeries(schedule.series, today).sort((a, b) => order(a).localeCompare(order(b)));
-  if (list.length === 0) {
-    const none = document.createElement("p");
-    none.className = "desk-empty";
-    none.textContent = "No weekly programs yet. Add one below, and it will go on the paper every week.";
-    host.appendChild(none);
-    return;
-  }
-  for (const s of list) {
-    const row = document.createElement("div");
-    row.className = "standing-def";
-    const when = document.createElement("span");
-    when.className = "sd-when";
-    when.textContent = describeSeries(s);
-    const what = document.createElement("span");
-    what.className = "sd-what";
-    const strong = document.createElement("strong");
-    strong.textContent = s.title;
-    what.append(strong, ` · ${timeRange(s.startTime, s.endTime)}`);
-    if (s.from > today) {
-      const first = [...occurrences.keys()].sort()
-        .find((iso) => occurrencesOn(iso).some((o) => o.seriesId === s.id));
-      if (first) what.append(` · starts ${dayLabel(first)}`);
-    }
-    const change = button("Change ✎", "sd-change",
-      () => openEditor({ mode: "weekly", series: s }), `Change ${s.title}, ${describeSeries(s)}`);
-    row.append(when, what, change);
-    host.appendChild(row);
-  }
-}
-
-$("#weekly-add").addEventListener("click", () => openEditor({ mode: "weekly" }));
+$("#start-add").addEventListener("click", () => openEditor({ presetDate: todayIso() }));
 
 /* ---------- the program editor ----------
-   One dialog, two jobs:
-     mode "date"   — one program on one date: a one-off, or a weekly program
-                     changed for that date only.
-     mode "weekly" — a weekly program itself, from today on. */
+   One dialog for every program. A weekly program's date asks first, as a
+   phone's calendar does, which dates the change is for: just this one, or
+   every week from it on. A new program asks the same question the other
+   way round: just this once, or every week. */
 const dialog = $("#event-dialog");
 
 const CATEGORIES = ["yoga", "art", "music", "computer", "finance",
@@ -553,64 +430,8 @@ function fillDays(select, value) {
   select.value = value || "MO";
 }
 
-function openEditor({ mode, occurrence = null, presetDate = null, series = null }) {
-  editing = { mode, occurrence, series };
-  const weekly = mode === "weekly";
-  const o = weekly
-    ? (series ?? { title: "", startTime: "10:00", endTime: "", category: "", description: "", zoomLink: "default" })
-    : (occurrence ?? {
-        kind: "once", title: "", date: presetDate || todayIso(),
-        startTime: "10:00", endTime: "", category: "", description: "",
-        zoomLink: "default", isNew: false,
-      });
-  const isSeriesDate = !weekly && o.kind === "series";
-  const s = isSeriesDate ? seriesById(o.seriesId) : null;
-
-  $("#event-dialog-title").textContent = weekly
-    ? (series ? "Change a weekly program" : "Add a weekly program")
-    : (occurrence ? `Change ${dayLabel(o.date)}` : "Add a program for one date");
-
-  // Say plainly which job this is, and offer the other one in case the
-  // volunteer came in by the wrong door.
-  const banner = $("#ev-banner");
-  const sw = $("#ev-switch");
-  banner.hidden = false;
-  sw.hidden = true;
-  if (weekly) {
-    $("#ev-banner-text").textContent = series
-      ? "This changes the program every week, starting today. Weeks already past stay as they were."
-      : "A weekly program goes on the paper every week, starting today, until you stop it.";
-  } else if (isSeriesDate) {
-    $("#ev-banner-text").textContent =
-      `This changes ${dayLabel(o.date)} only. The other weeks stay as they are.`;
-    if (s && activeSeries([s], todayIso()).length) {
-      sw.textContent = "Change every week instead";
-      sw.hidden = false;
-      sw.onclick = () => { dialog.close(); openEditor({ mode: "weekly", series: s }); };
-    }
-  } else if (!occurrence) {
-    $("#ev-banner-text").textContent = "This adds a program on one date only.";
-    sw.textContent = "It happens every week: add a weekly program instead";
-    sw.hidden = false;
-    sw.onclick = () => { dialog.close(); openEditor({ mode: "weekly" }); };
-  } else {
-    banner.hidden = true;
-  }
-
-  // A date for a new or one-off program; none for a weekly program's date
-  // (the title already names it, and it cannot move); a weekday for a weekly
-  // program (in words only, if its rhythm is richer than one day).
-  $("#f-date").hidden = weekly || isSeriesDate;
-  $("#f-day").hidden = !weekly;
-  $("#ev-date").value = weekly ? "" : (o.date || "");
-  const day = weekly ? (series ? weekdayOf(series.rrule) : "MO") : null;
-  $("#ev-day").hidden = weekly && series && !day;
-  $("#ev-day-text").hidden = !(weekly && series && !day);
-  if (weekly) {
-    fillDays($("#ev-day"), day);
-    $("#ev-day-text").textContent = series ? describeSeries(series) : "";
-  }
-
+/* Put a program's details into the form. */
+function fillDetails(o) {
   $("#ev-title").value = o.title || "";
   fillTimes($("#ev-start"), o.startTime || "10:00");
   fillTimes($("#ev-end"), o.endTime || "", { none: true });
@@ -620,49 +441,111 @@ function openEditor({ mode, occurrence = null, presetDate = null, series = null 
   $("#ev-category").value = CATEGORIES.includes(cat) ? cat
     : (CATEGORIES.find((c) => cat.includes(c)) ?? "");
   $("#ev-desc").value = o.description || "";
-
-  const mode0 = o.zoomLink === "default" ? "default"
-    : /^https?:\/\//.test(o.zoomLink || "") ? "custom" : "phone";
-  document.querySelector(`input[name="ev-zoom"][value="${mode0}"]`).checked = true;
-  $("#ev-zoom-url").value = mode0 === "custom" ? o.zoomLink : "";
-  $("#f-new").hidden = weekly;
-  $("#ev-more-hint").textContent = weekly
-    ? "(the description, kind of program, how people join)"
-    : "(the description, how people join, the NEW stamp)";
+  const join = zoomKind(o.zoomLink);
+  document.querySelector(`input[name="ev-zoom"][value="${join}"]`).checked = true;
+  $("#ev-zoom-url").value = join === "custom" ? o.zoomLink : "";
   $("#ev-new").checked = Boolean(o.isNew);
-  $("#ev-more").open = false;
+}
 
-  $("#ev-reset").hidden = !(isSeriesDate && o.hasException);
-  $("#ev-delete").hidden = !(occurrence && o.kind === "once");
-  $("#ev-stop").hidden = !(weekly && series);
+const scope = () => document.querySelector('input[name="ev-scope"]:checked').value;
+
+function openEditor({ occurrence = null, presetDate = null } = {}) {
+  const o = occurrence ?? {
+    kind: "new", title: "", date: presetDate || todayIso(),
+    startTime: "10:00", endTime: "", category: "", description: "", zoomLink: "default",
+  };
+  const series = o.kind === "series" ? seriesIndex.get(o.seriesId) ?? null : null;
+  // A weekly change starts at this date, or, if this date is past, at the
+  // program's next date from today: a Wednesday class changes from a
+  // Wednesday, never from "today".
+  const start = latest(o.date, todayIso());
+  const from = series ? nextDateOf(series.id, start) : start;
+  const canGoWeekly = o.kind === "new" || Boolean(from && activeSeries([series], from).length);
+  editing = { o, series, from, touched: false };
+
+  $("#event-dialog-title").textContent = o.kind === "new" ? "Add a program" : `Change ${o.title}`;
+  $("#f-scope").hidden = !canGoWeekly;
+  $("#scope-legend").textContent = o.kind === "new" ? "How often?" : "Change which dates?";
+  document.querySelector('input[name="ev-scope"][value="date"]').checked = true;
+
+  $("#ev-date").value = o.date;
+  fillDetails(o);
+  if (series) {
+    const day = weekdayOf(series.rrule);
+    fillDays($("#ev-day"), day);
+    $("#ev-day").hidden = !day;          // a richer rhythm is stated, not offered
+    $("#ev-day-text").hidden = Boolean(day);
+    $("#ev-day-text").textContent = describeSeries(series);
+  }
+  $("#ev-more").open = false;
   $("#event-msg").textContent = "";
+  applyScope();
   dialog.showModal();
 }
 
+/* Show what fits the answer to "which dates?". */
+function applyScope() {
+  const { o, series, from } = editing;
+  const weekly = scope() === "weekly";
+  const isNew = o.kind === "new";
+
+  if (isNew) {
+    const day = dayName(weekdayOfDate($("#ev-date").value || o.date));
+    $("#scope-date").textContent = "Just this once";
+    $("#scope-date-note").textContent = "It goes on the paper on this date only.";
+    $("#scope-weekly").textContent = `Every ${day}, from then on`;
+    $("#scope-weekly-note").textContent = "It goes on the paper every week until you stop it.";
+  } else if (series && from) {
+    $("#scope-date").textContent = `Only ${longDate(o.date)}`;
+    $("#scope-date-note").textContent = "The other weeks stay as they are.";
+    $("#scope-weekly").textContent = `Every week, from ${longDate(from)} on`;
+    $("#scope-weekly-note").textContent = "Dates before that stay as they were.";
+    // Each answer starts from its own details, until the volunteer types.
+    if (!editing.touched) fillDetails(weekly ? series : o);
+  }
+
+  // A weekly program's dates cannot move one at a time; the whole program
+  // can move to another day.
+  $("#f-date").hidden = o.kind === "series";
+  $("#ev-date-label").textContent = isNew && weekly ? "Starting on" : "Date";
+  $("#f-day").hidden = !(series && weekly);
+  $("#f-new").hidden = weekly;
+  $("#ev-more-hint").textContent = weekly
+    ? "The description, the kind of program, and how people join"
+    : "The description, how people join, and the NEW stamp";
+
+  $("#ev-reset").hidden = !(series && !weekly && o.changed);
+  $("#ev-delete").hidden = o.kind !== "once";
+  $("#ev-stop").hidden = !(series && weekly);
+}
+
+for (const r of document.querySelectorAll('input[name="ev-scope"]')) r.addEventListener("change", applyScope);
+$("#ev-date").addEventListener("change", () => { if (editing?.o.kind === "new") applyScope(); });
+$("#event-form").addEventListener("input", (e) => {
+  if (editing && e.target.name !== "ev-scope" && e.target.id !== "ev-date") editing.touched = true;
+});
+
 function readForm() {
-  const weekly = editing.mode === "weekly";
   const title = $("#ev-title").value.trim();
   const date = $("#ev-date").value;
   const startTime = $("#ev-start").value;
   if (!title) return { error: "Please give the program a name." };
-  if (!weekly && !date) return { error: "Please choose a date." };
+  if (editing.o.kind !== "series" && !date) return { error: "Please choose a date." };
   const endTime = $("#ev-end").value || null;
   if (endTime && endTime <= startTime) {
     return { error: "The end time should be after the start time." };
   }
-  const mode = document.querySelector('input[name="ev-zoom"]:checked').value;
-  let zoomLink = null;
-  if (mode === "default") zoomLink = "default";
-  if (mode === "custom") {
+  const join = document.querySelector('input[name="ev-zoom"]:checked').value;
+  let zoomLink = join === "default" ? "default" : null;
+  if (join === "custom") {
     zoomLink = $("#ev-zoom-url").value.trim();
-    if (!/^https?:\/\//.test(zoomLink)) {
+    if (!isHttpUrl(zoomLink)) {
       $("#ev-more").open = true;
       return { error: "The special Zoom link should start with https://" };
     }
   }
   return {
     title, date, startTime, endTime,
-    weekday: weekly && !$("#ev-day").hidden ? $("#ev-day").value : null,
     category: $("#ev-category").value,
     description: $("#ev-desc").value.trim(),
     zoomLink,
@@ -670,22 +553,11 @@ function readForm() {
   };
 }
 
-/* Only what actually differs from the weekly program gets recorded; a date
-   that was cancelled stays cancelled. */
-function exceptionFromForm(o, form) {
-  const s = seriesById(o.seriesId);
-  const ex = { seriesId: o.seriesId, date: o.date };
-  if (!s) return ex;
-  const same = (a, b) => (a ?? "") === (b ?? "");
-  if (!same(form.title, s.title)) ex.title = form.title;
-  if (!same(form.description, s.description)) ex.description = form.description;
-  if (!same(form.category, s.category)) ex.category = form.category;
-  if (!same(form.startTime, s.startTime)) ex.startTime = form.startTime;
-  if (!same(form.endTime, s.endTime)) ex.endTime = form.endTime;
-  if (!same(form.zoomLink, s.zoomLink)) ex.zoomLink = form.zoomLink;
-  if (form.isNew) ex.isNew = true;
-  if (o.cancelled) ex.cancelled = true;
-  return ex;
+/* Close the editor, show where the change lands, and save it. */
+function save(label, change, date) {
+  dialog.close();
+  anchor = dateOf(date);
+  return commit(label, change, { date });
 }
 
 /* Enter in any box saves, as the volunteer expects, rather than closing the
@@ -694,85 +566,51 @@ $("#event-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const form = readForm();
   if (form.error) { $("#event-msg").textContent = form.error; return; }
-  if (editing.mode === "weekly") saveWeekly(form); else saveDate(form);
+  const { o, series, from } = editing;
+  const weekly = scope() === "weekly" && !$("#f-scope").hidden;
+
+  if (o.kind === "new" && weekly) {
+    const start = latest(form.date, todayIso());
+    const weekday = weekdayOfDate(form.date);
+    return save(`${form.title} added, every ${dayName(weekday)} from ${longDate(start)}`,
+      (s) => addSeries(s, { ...form, weekday }, start), start);
+  }
+  if (o.kind === "new") {
+    return save(`${form.title} added on ${longDate(form.date)}`, (s) => addEvent(s, form), form.date);
+  }
+  if (!weekly) {
+    const date = o.kind === "once" ? form.date : o.date;
+    return save(`${form.title} changed on ${longDate(date)}`, (s) => writeDate(s, o, form), date);
+  }
+
+  const weekday = $("#ev-day").hidden ? null : $("#ev-day").value;
+  const moved = weekday && weekday !== weekdayOf(series.rrule);
+  const handMade = moved ? handChangesFrom(schedule, series.id, from) : 0;
+  if (handMade && !confirm(
+    `Moving ${series.title} to ${dayName(weekday)}s will undo ${handMade === 1 ? "the 1 date" : `the ${handMade} dates`} ` +
+    `you changed by hand from ${longDate(from)} on, such as a cancelled week. Move it anyway?`)) return;
+  save(moved
+    ? `${form.title} moved to ${dayName(weekday)}s, from ${longDate(from)}`
+    : `${form.title} changed every week, from ${longDate(from)}`,
+  (s) => changeSeries(s, series.id, { ...form, endTime: form.endTime || "", weekday }, from), from);
 });
 
-function saveDate(form) {
-  const o = editing.occurrence;
-  if (o?.kind === "series") {
-    dialog.close();
-    commit(`${form.title} on ${dayLabel(o.date)} is changed.`,
-      () => writeException(exceptionFromForm(o, form)));
-    return;
-  }
-  const event = {
-    title: form.title, date: form.date, startTime: form.startTime,
-    endTime: form.endTime || undefined,
-    category: form.category,
-    description: form.description,
-    zoomLink: form.zoomLink,
-    isNew: form.isNew || undefined,
-    cancelled: o?.cancelled || undefined,
-  };
-  dialog.close();
-  anchor = dateOf(form.date);
-  commit(o ? `${form.title} is changed.` : `${form.title} is added for ${dayLabel(form.date)}.`, () => {
-    if (o) schedule.events[o.eventIndex] = event;
-    else schedule.events.push(event);
-  });
-}
-
-function saveWeekly(form) {
-  const today = todayIso();
-  const s = editing.series;
-  const fields = {
-    title: form.title, startTime: form.startTime, endTime: form.endTime || "",
-    category: form.category, description: form.description, zoomLink: form.zoomLink,
-    weekday: form.weekday,
-  };
-  if (!s) {
-    dialog.close();
-    commit(`${form.title} is added, every ${dayName(form.weekday)} from today.`,
-      () => addSeries(schedule, fields, today));
-    return;
-  }
-  const moved = form.weekday && form.weekday !== weekdayOf(s.rrule);
-  const handMade = moved ? handChangesFrom(schedule, s.id, today) : 0;
-  if (handMade && !confirm(
-    `Moving ${s.title} to ${dayName(form.weekday)}s will undo ${handMade === 1 ? "the 1 date" : `the ${handMade} dates`} ` +
-    "you changed by hand from today on, such as a cancelled week. Move it anyway?")) return;
-  dialog.close();
-  commit(moved
-    ? `${form.title} is now every ${dayName(form.weekday)}, from today.`
-    : `${form.title} is changed from today on.`,
-  () => changeSeries(schedule, s.id, fields, today));
-}
-
 $("#ev-delete").addEventListener("click", () => {
-  const o = editing?.occurrence;
-  if (!o || o.kind !== "once") return;
-  if (!confirm(`Delete ${o.title} on ${dayLabel(o.date)}? (To keep it on the paper marked CANCELLED, choose Never mind and then Cancel this date.)`)) return;
-  dialog.close();
-  commit(`${o.title} is deleted.`, () => { schedule.events.splice(o.eventIndex, 1); });
+  const { o } = editing;
+  const on = longDate(o.date);
+  if (!confirm(`Delete ${o.title} on ${on}? It will not be on the paper at all. (To keep it on the paper marked CANCELLED, choose Never mind and then Cancel this date.)`)) return;
+  save(`${o.title} on ${on} deleted`, (s) => deleteEvent(s, o), o.date);
 });
 
 $("#ev-stop").addEventListener("click", () => {
-  const s = editing?.series;
-  if (!s) return;
-  if (!confirm(`Stop ${s.title}? It will not be on the paper from today on. Weeks already past stay as they were.`)) return;
-  dialog.close();
-  commit(`${s.title} is stopped.`, () => stopSeries(schedule, s.id, todayIso()));
+  const { series, from } = editing;
+  if (!confirm(`Stop ${series.title}? It will not be on the paper from ${longDate(from)} on. Dates before that stay as they were.`)) return;
+  save(`${series.title} stopped from ${longDate(from)}`, (s) => stopSeries(s, series.id, from), from);
 });
 
 $("#ev-reset").addEventListener("click", () => {
-  const o = editing?.occurrence;
-  if (o?.kind !== "series") return;
-  dialog.close();
-  commit(`${o.title} on ${dayLabel(o.date)} is back to the usual.`, () => {
-    // Back to the usual details, but a cancelled date stays cancelled.
-    removeException(o.seriesId, o.date);
-    if (o.cancelled) patchException(o, { cancelled: true });
-  });
+  const { o } = editing;
+  save(`${o.title} on ${longDate(o.date)} back to the usual`, (s) => resetDate(s, o), o.date);
 });
 
 $("#ev-cancel").addEventListener("click", () => dialog.close());
@@ -798,17 +636,17 @@ $("#default-zoom").addEventListener("input", () => {
 });
 
 $("#note-save").addEventListener("click", async () => {
-  const text = $("#editors-note").value.trim();
-  const ok = await commit("The front-page note is saved.", () => { schedule.editorsNote = text; });
+  const editorsNote = $("#editors-note").value.trim();
+  const ok = await commit("the note on the front page rewritten", (s) => ({ ...s, editorsNote }));
   if (ok) $("#note-state").textContent = "Saved.";
 });
 $("#zoom-save").addEventListener("click", async () => {
-  const link = $("#default-zoom").value.trim();
-  if (link && !/^https?:\/\//.test(link)) {
+  const defaultZoomLink = $("#default-zoom").value.trim();
+  if (defaultZoomLink && !isHttpUrl(defaultZoomLink)) {
     $("#zoom-state").textContent = "The link should start with https://";
     return;
   }
-  const ok = await commit("The Zoom link is saved.", () => { schedule.defaultZoomLink = link; });
+  const ok = await commit("the Zoom link changed", (s) => ({ ...s, defaultZoomLink }));
   if (ok) $("#zoom-state").textContent = "Saved.";
 });
 
@@ -834,16 +672,16 @@ $("#preview-close").addEventListener("click", () => {
   $("#preview-frame").src = "about:blank";
 });
 
-/* ---------- earlier versions ---------- */
-function editionLabel(savedAt) {
-  if (!savedAt) return "An earlier version";
-  const d = new Date(savedAt);
-  if (Number.isNaN(d.getTime())) return "An earlier version";
-  return d.toLocaleString(undefined, {
-    weekday: "long", month: "long", day: "numeric",
-    hour: "numeric", minute: "2-digit",
-  });
+/* ---------- earlier copies of the paper ---------- */
+function copyLabel(savedAt) {
+  const d = new Date(savedAt ?? "");
+  if (Number.isNaN(d.getTime())) return "an earlier time";
+  const day = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} at ${time}`;
 }
+
+const SHOW_CHANGES = 4;
 
 /* Opening the desk and finishing a save can both ask for the list at once.
    Each draw builds its rows off-page and swaps them in whole, and a draw
@@ -852,64 +690,54 @@ function editionLabel(savedAt) {
 let editionsDraw = 0;
 async function drawEditions() {
   const host = $("#editions-list");
-  if (!host) return;
   const ticket = ++editionsDraw;
-  const res = await fetch("/api/versions").catch(() => null);
-  const data = res && res.ok ? await res.json().catch(() => null) : null;
+  const res = await api("GET", "/api/versions");
   if (ticket !== editionsDraw) return;
 
-  const note = (text) => {
-    const p = document.createElement("p");
-    p.className = "desk-empty";
-    p.textContent = text;
-    return p;
-  };
-  if (!data) {
-    host.replaceChildren(note("The earlier versions could not be read just now."));
+  if (!res.ok) {
+    host.replaceChildren(emptyNote("The earlier copies could not be read just now."));
     return;
   }
-  const { editions } = data;
+  const { editions } = res.data;
   if (!editions.length) {
-    host.replaceChildren(note("Nothing here yet. The first earlier version is kept the next time the paper changes."));
+    host.replaceChildren(emptyNote("Nothing here yet. The first copy is kept the next time the paper changes."));
     return;
   }
-  const rows = editions.map((e) => {
-    const row = document.createElement("div");
-    row.className = "edition-row";
-    const when = document.createElement("span");
-    when.className = "ed-when";
-    when.textContent = `As it was on ${editionLabel(e.savedAt)}`;
-    const what = document.createElement("span");
-    what.className = "ed-what";
-    what.textContent = `${e.programs} programs on the paper`;
-    const restore = document.createElement("button");
-    restore.type = "button";
-    restore.className = "btn btn--quiet ed-restore";
-    restore.textContent = "Put this back";
-    restore.setAttribute("aria-label", `Put back the paper ${when.textContent.toLowerCase()}`);
-    restore.addEventListener("click", () => restoreEdition(e, editionLabel(e.savedAt)));
-    row.append(when, what, restore);
+  host.replaceChildren(...editions.map((e) => {
+    const label = copyLabel(e.savedAt);
+    const row = el("div", "edition-row");
+    const when = el("span", "ed-when", `As it was on ${label}`);
+    const restore = button("Go back to this copy", "ed-restore", () => restoreEdition(e, label),
+      `Go back to the paper as it was on ${label}`);
+    restore.disabled = !e.changes.length;
+    if (!e.changes.length) {
+      row.append(when, el("p", "ed-what", "The same as the paper now."), restore);
+      return row;
+    }
+    const what = el("ul", "ed-what");
+    for (const c of e.changes.slice(0, SHOW_CHANGES)) what.append(el("li", null, c));
+    const more = e.changes.length - SHOW_CHANGES;
+    if (more > 0) what.append(el("li", null, `and ${more} more change${more === 1 ? "" : "s"}`));
+    row.append(when, el("p", "ed-label", "Going back undoes:"), what, restore);
     return row;
-  });
-  host.replaceChildren(...rows);
+  }));
 }
 
 async function restoreEdition(edition, label) {
-  if (!confirm(`Put back the paper as it was on ${label}? Readers will see it straight away. The paper as it is now will be kept here too, so you can change your mind.`)) return;
+  const undoing = edition.changes.slice(0, 8).map((c) => `\n  • ${c}`).join("");
+  if (!confirm(`Go back to the paper as it was on ${label}?\n\nThis undoes:${undoing}\n\nReaders see it straight away. If you change your mind, press Undo.`)) return;
   await saving;
-  status("Putting it back…");
-  const res = await fetch("/api/versions/restore", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id: edition.id }),
-  }).catch(() => null);
-  if (!res || !res.ok) {
-    const body = res ? await res.json().catch(() => ({})) : {};
-    status(body.error || "That version could not be put back. Nothing was changed.");
+  status({ word: "Going back…", kind: "working" });
+  const before = schedule;
+  const res = await api("POST", "/api/versions/restore", { id: edition.id });
+  if (!res.ok) {
+    status({ word: "Not saved", kind: "error", note: res.error || "That copy could not be put back. Nothing was changed." });
     return;
   }
-  await openDesk();                 // reload the restored paper into the desk
-  status(`The paper is back as it was on ${label}. Readers see it now.`);
+  await loadSchedule();             // the restored paper, into the desk
+  const what = `the paper back as it was on ${label}`;
+  undoStack.push({ before, label: what, date: null });
+  announce("saved", what);
 }
 
 boot();

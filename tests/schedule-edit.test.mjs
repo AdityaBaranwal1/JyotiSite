@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { expandSeries, defaultHorizon, activeSeries } from "../js/data-adapter.js";
-import { addSeries, changeSeries, stopSeries, handChangesFrom, weekdayOf } from "../js/series-edit.js";
+import {
+  addSeries, changeSeries, stopSeries, handChangesFrom, weekdayOf, weekdayOfDate,
+  setCancelled, resetDate, writeDate, addEvent, deleteEvent,
+} from "../js/schedule-edit.js";
 
 const yoga = {
   id: "yoga", title: "Yoga", shortTitle: "Yoga", description: "Chair yoga.", category: "yoga",
@@ -126,4 +129,69 @@ test("adding a weekly program starts today with no end", () => {
   assert.deepEqual(dates(after, added.id), ["2026-10-01", "2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29"]);
   const again = addSeries(after, { title: "Gardening Club", weekday: "FR", startTime: "14:00" }, TODAY);
   assert.equal(again.series[2].id, "gardening-club-20260930-2");
+});
+
+/* ---------- one date: the same few rules for either kind ---------- */
+const weekly = (date) => ({ kind: "series", seriesId: "yoga", date });
+const once = (i) => ({ kind: "once", eventIndex: i });
+
+test("cancelling and putting back on is one toggle, for a weekly date or a one-off", () => {
+  const s = { ...base(), events: [{ title: "Picnic", date: "2026-10-10", startTime: "12:00" }] };
+  const off = setCancelled(setCancelled(s, weekly("2026-10-12"), true), once(0), true);
+  assert.ok(off.exceptions.some((x) => x.date === "2026-10-12" && x.cancelled));
+  assert.equal(off.events[0].cancelled, true);
+
+  const on = setCancelled(setCancelled(off, weekly("2026-10-12"), false), once(0), false);
+  assert.deepEqual(on.exceptions, s.exceptions, "an emptied change for one date is removed");
+  assert.equal("cancelled" in on.events[0], false);
+});
+
+test("putting a date back on also clears the older 'skip'", () => {
+  const s = { ...base(), exceptions: [{ seriesId: "yoga", date: "2026-10-12", skip: true }] };
+  assert.deepEqual(setCancelled(s, weekly("2026-10-12"), false).exceptions, []);
+});
+
+test("cancelling keeps a date's changed topic, and back-to-usual keeps it cancelled", () => {
+  const s = setCancelled(base(), weekly("2026-10-05"), true);
+  const x = s.exceptions.find((e) => e.date === "2026-10-05");
+  assert.deepEqual(x, { seriesId: "yoga", date: "2026-10-05", title: "Yoga: guest", cancelled: true });
+  const reset = resetDate(s, { ...weekly("2026-10-05"), cancelled: true });
+  assert.deepEqual(reset.exceptions.find((e) => e.date === "2026-10-05"),
+    { seriesId: "yoga", date: "2026-10-05", cancelled: true });
+});
+
+test("writing one date keeps only what differs from the weekly program", () => {
+  const form = { ...yoga, startTime: "11:00", endTime: null, isNew: false };
+  const s = writeDate(base(), weekly("2026-10-12"), form);
+  assert.deepEqual(s.exceptions.find((e) => e.date === "2026-10-12"),
+    { seriesId: "yoga", date: "2026-10-12", startTime: "11:00", endTime: "" });
+  const [o] = expandSeries(s.series, s.exceptions, { horizon: "2026-10-31" }).filter((e) => e.date === "2026-10-12");
+  assert.equal(o.startTime, "11:00");
+  assert.equal(o.changed, true);
+  // Saving the usual details again leaves nothing behind.
+  const back = writeDate(s, weekly("2026-10-12"), { ...yoga, isNew: false });
+  assert.equal(back.exceptions.some((e) => e.date === "2026-10-12"), false);
+});
+
+test("a change from a later date leaves the weeks before it alone", () => {
+  const after = changeSeries(base(), "yoga", { startTime: "09:00" }, "2026-10-12");
+  assert.equal(after.series[0].until, "2026-10-11");
+  const out = expandSeries(after.series, after.exceptions, { horizon: "2026-10-31" });
+  assert.equal(out.find((o) => o.date === "2026-10-05").startTime, "10:00");
+  assert.equal(out.find((o) => o.date === "2026-10-12").startTime, "09:00");
+});
+
+test("one-off events are added, rewritten and deleted by place", () => {
+  let s = addEvent(base(), { title: "Picnic", date: "2026-10-10", startTime: "12:00", endTime: null, zoomLink: null, isNew: true });
+  assert.deepEqual(s.events[0], { date: "2026-10-10", title: "Picnic", startTime: "12:00", zoomLink: null, isNew: true });
+  s = setCancelled(s, once(0), true);
+  s = writeDate(s, { ...once(0), cancelled: true }, { title: "Picnic", date: "2026-10-11", startTime: "13:00" });
+  assert.equal(s.events[0].date, "2026-10-11");
+  assert.equal(s.events[0].cancelled, true, "a cancelled program stays cancelled when edited");
+  assert.deepEqual(deleteEvent(s, once(0)).events, []);
+});
+
+test("weekdayOfDate reads the day from a date label", () => {
+  assert.equal(weekdayOfDate("2026-11-03"), "TU");
+  assert.equal(weekdayOfDate("2026-11-08"), "SU");
 });

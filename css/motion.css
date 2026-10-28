@@ -67,29 +67,13 @@
   html[data-vt="month-prev"]::view-transition-new(jj-month-title) { animation: 420ms var(--ease-ink) 120ms both jj-in-left; }
 
   /* ---------- The press run (first page of a visit only) ----------
-     The nameplate inks in, the pen draws the marigold flourish under it,
-     and the two diamonds are struck last. Later pages in the same sitting
+     The nameplate inks in and the motto follows it. Later pages in the same sitting
      open already printed (see the jj-pressed snippet in each page head). */
   html:not(.jj-pressed) .nameplate .name {
     animation: jj-ink-in 760ms var(--ease-ink) 60ms both;
   }
   html:not(.jj-pressed) .nameplate .tagline {
     animation: jj-fade-in 700ms ease-out 520ms both;
-  }
-  html:not(.jj-pressed) .nameplate .flourish path {
-    /* pathLength="1" on the path: a one-unit dash, a two-unit gap */
-    stroke-dasharray: 1 2;
-    animation: jj-pen 1150ms var(--ease-pen) 360ms both;
-  }
-  html:not(.jj-pressed) .nameplate .flourish path + path {
-    animation-duration: 520ms;
-    animation-delay: 1180ms;
-  }
-  .nameplate .deva::before,
-  .nameplate .deva::after { display: inline-block; }
-  html:not(.jj-pressed) .nameplate .deva::before,
-  html:not(.jj-pressed) .nameplate .deva::after {
-    animation: jj-strike 620ms var(--ease-ink) 1250ms both;
   }
 
   /* "You are here": the wavy marigold underline is drawn out from the
@@ -121,8 +105,7 @@
   }
   /* Grow from the edge they sit against, so a stamp at the right margin
      of a phone never pokes past the screen while it lands. */
-  .day-head .stamp,
-  .month-row .stamp { transform-origin: 100% 50%; }
+  .day-head .stamp  { transform-origin: 100% 50%; }
   .l-title .stamp   { transform-origin: 0 50%; }
 
   /* The month's grid settles once when the page opens. Changing months
@@ -172,12 +155,8 @@
 @keyframes jj-out-right { to   { opacity: 0; translate: 28px 0; } }
 @keyframes jj-in-right  { from { opacity: 0; translate: 28px 0; } }
 @keyframes jj-in-left   { from { opacity: 0; translate: -28px 0; } }
-@keyframes jj-pen       { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes jj-rule      { from { scale: 0 1; } }
 @keyframes jj-underline { from { background-size: 0% 9px; } }
-@keyframes jj-strike {
-  from { opacity: 0; scale: 0.2; rotate: -90deg; }
-}
 @keyframes jj-stamp {
   0%   { opacity: 0; scale: 1.5; }
   55%  { opacity: 1; scale: 0.95; }
