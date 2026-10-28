@@ -13,8 +13,8 @@ Everything is vector paths: no embedded images and no `<text>`, so the logo look
 | `jeevan-jyoti-logo-600/1200/2400.png` | The full logo as transparent PNGs, for places that can't take SVG |
 | `jeevan-jyoti-logo-on-white.png` | The full logo, 1200 px wide on solid white, for email and Word/PDF documents |
 | `jeevan-jyoti-mark-512.png` | App icon / PWA icon |
-| `jeevan-jyoti-mark-180.png` | `apple-touch-icon` |
-| `favicon-32.png` | Browser tab icon. The strokes are 2.4× heavier so it reads at 32 px. |
+| `apple-touch-icon.png` | Phone home-screen icon: the bold torch on cream, 180 px |
+| `favicon.svg`, `favicon-32.png`, `favicon-16.png` | Browser tab icon: the torch with about twice the stroke weight and the smallest strokes left out |
 
 Inside the SVGs the groups are named `torch`, `word-jeevan`, `word-jyoti` and `flags`.
 
