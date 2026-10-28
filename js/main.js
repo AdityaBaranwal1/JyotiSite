@@ -133,17 +133,41 @@ function initMonthView(container, schedule) {
 
   // Choosing a day only moves the tint and re-sets the programs below; the
   // grid itself is not redrawn, so the tint can ease across.
-  const selectDay = (iso, { reveal = false } = {}) => {
-    selected = iso;
-    for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
-      cell.classList.toggle("is-selected", cell.dataset.date === iso);
+  /* On a phone the month is a list of days, and a day opens like a drawer:
+     its programs, with their Join buttons, appear right under it, and
+     pressing it again closes it. On a wider screen the wall calendar keeps
+     the chosen day's programs below the grid. */
+  const narrow = matchMedia("(max-width: 880px)");
+  const openUnderDay = () => {
+    container.querySelector(".tt-inline")?.remove();
+    let panel = null;
+    for (const cell of container.querySelectorAll(".tt-day.has-events")) {
+      const open = cell.dataset.date === selected;
+      cell.setAttribute("aria-expanded", String(open && narrow.matches));
+      if (!open) continue;
+      panel = document.createElement("div");
+      panel.className = "tt-inline datebook";
+      renderDayListings(panel, events, selected, { head: false });
+      cell.after(panel);
     }
+    return panel;
+  };
+
+  const selectDay = (iso, { reveal = false } = {}) => {
+    selected = narrow.matches && iso === selected ? null : iso;
+    for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
+      cell.classList.toggle("is-selected", cell.dataset.date === selected);
+    }
+    const panel = openUnderDay();
     if (!dayPrograms) return;
     renderDayListings(dayPrograms, events, selected);
-    // On a phone the programs are a long scroll below the day that was
-    // tapped; bring them up so the tap visibly did something.
-    if (reveal && dayPrograms.getBoundingClientRect().top > innerHeight * 0.75) {
-      dayPrograms.scrollIntoView({ behavior: motionOK() ? "smooth" : "auto", block: "start" });
+    if (!reveal) return;
+    const behavior = motionOK() ? "smooth" : "auto";
+    // Make sure what just opened is on screen: on a phone, the drawer under
+    // the day; on a wide screen, the programs below the grid.
+    if (narrow.matches) panel?.scrollIntoView({ behavior, block: "nearest" });
+    else if (dayPrograms.getBoundingClientRect().top > innerHeight * 0.75) {
+      dayPrograms.scrollIntoView({ behavior, block: "start" });
     }
   };
 
@@ -153,6 +177,7 @@ function initMonthView(container, schedule) {
       year, month1, selected,
       onSelectDay: (iso) => selectDay(iso, { reveal: true }),
     });
+    openUnderDay();
     if (hint) hint.hidden = false;
     if (dayPrograms) renderDayListings(dayPrograms, events, selected);
     // navigation stops where the data stops
@@ -172,6 +197,8 @@ function initMonthView(container, schedule) {
   selected = pickDefaultDay();
   draw();
   container.querySelector(".timetable")?.classList.add("is-entering");
+  // Turning a tablet between list and calendar moves the open day's programs.
+  narrow.addEventListener("change", () => openUnderDay());
 }
 
 /* ---------- Boot ---------- */

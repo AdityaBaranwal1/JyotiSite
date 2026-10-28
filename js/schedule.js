@@ -37,14 +37,19 @@ function weekBounds(now) {
   return { monday, sunday: dateOf(addDays(isoOf(monday), 6)) };
 }
 
+/* "June 8 to 14", or "June 29 to July 5": the month is said again only when
+   the week crosses into the next one. */
+export function weekSpan(now = new Date()) {
+  const { monday, sunday } = weekBounds(now);
+  const to = (sunday.getMonth() === monday.getMonth() ? "" : `${MONTHS[sunday.getMonth()]} `) + sunday.getDate();
+  return `${MONTHS[monday.getMonth()]} ${monday.getDate()} to ${to}`;
+}
+
 export function weekLabelFor(now = new Date()) {
   const { monday, sunday } = weekBounds(now);
-  const from = `${MONTHS[monday.getMonth()]} ${monday.getDate()}` +
-    (monday.getFullYear() !== sunday.getFullYear() ? `, ${monday.getFullYear()}` : "");
-  // "June 8 to 14": the month is said again only when the week crosses into the next one.
-  const to = (sunday.getMonth() === monday.getMonth() ? "" : `${MONTHS[sunday.getMonth()]} `) +
-    `${sunday.getDate()}, ${sunday.getFullYear()}`;
-  return `Week of ${from} to ${to}`;
+  if (monday.getFullYear() === sunday.getFullYear()) return `Week of ${weekSpan(now)}, ${sunday.getFullYear()}`;
+  const day = (d) => `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `Week of ${day(monday)} to ${day(sunday)}`;
 }
 
 export function filterWeek(events, now = new Date()) {
@@ -176,15 +181,19 @@ export function renderSchedule(container, schedule, { now = new Date() } = {}) {
 }
 
 /* Full-size listings for one selected day (same rows as the front page). */
-export function renderDayListings(container, events, iso, { now = new Date() } = {}) {
+/* `head: false` is for the phone, where the programs open right under the
+   day that was pressed and that day already names itself. */
+export function renderDayListings(container, events, iso, { now = new Date(), head = true } = {}) {
   container.textContent = "";
   if (!iso) return;
-  const head = el("div", "day-head");
-  head.appendChild(el("span", "day-meta"));
-  // "October 23" stays together when the heading wraps beside its stamp
-  head.firstChild.appendChild(el("span", "day-name", dayLabel(iso).replace(/ (\d+)$/, "\u00a0$1")));
-  if (isToday(iso, now)) head.appendChild(stamp("Today", "stamp--today"));
-  container.appendChild(head);
+  if (head) {
+    const h = el("div", "day-head");
+    h.appendChild(el("span", "day-meta"));
+    // "October 23" stays together when the heading wraps beside its stamp
+    h.firstChild.appendChild(el("span", "day-name", dayLabel(iso).replace(/ (\d+)$/, "\u00a0$1")));
+    if (isToday(iso, now)) h.appendChild(stamp("Today", "stamp--today"));
+    container.appendChild(h);
+  }
   events
     .filter((e) => e.date === iso)
     .sort(byStartTime)
@@ -251,9 +260,19 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
   };
   for (let i = 0; i < lead; i++) grid.appendChild(pad());
 
+  // On a phone the grid is read as a list, a week at a time; each week that
+  // has programs gets a heading there. The wall calendar shows weeks as rows,
+  // so it never shows these.
+  let weekShown = null;
+
   for (const iso of isos) {
     const todays = (byDate.get(iso) ?? []).sort(byStartTime);
     const d = dateOf(iso);
+    const week = isoOf(mondayOf(d));
+    if (todays.length && week !== weekShown) {
+      grid.appendChild(el("h3", "tt-week", weekSpan(d)));
+      weekShown = week;
+    }
 
     const cell = el(todays.length ? "button" : "div", "tt-day");
     cell.dataset.date = iso;
@@ -268,13 +287,19 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
     if (iso === selected) cell.classList.add("is-selected");
 
     const head = el("div", "tt-daynum");
-    // The weekday only needs printing when the columns collapse on a phone.
+    // The weekday only needs printing when the columns collapse on a phone,
+    // where today's leaf says so in words.
     head.appendChild(el("span", "tt-dow-inline", SHORT_DAYS[d.getDay()]));
+    if (isToday(iso, now)) head.appendChild(el("span", "tt-today-word", "Today"));
     head.appendChild(el("span", "tt-date", String(d.getDate())));
     cell.appendChild(head);
 
-    for (const e of todays) cell.appendChild(timetableEntry(e));
-    if (!todays.length) cell.appendChild(el("span", "tt-none", "No programs"));
+    const list = el("div", "tt-entries");
+    for (const e of todays) list.appendChild(timetableEntry(e));
+    if (!todays.length) list.appendChild(el("span", "tt-none", "No programs"));
+    cell.appendChild(list);
+    // the phone's sign that a day opens
+    if (todays.length) cell.appendChild(el("span", "tt-open"));
 
     cell.setAttribute("aria-label", todays.length
       ? `${dayLabel(iso)}: ${todays.map((e) => e.title).join(", ")}`
