@@ -197,17 +197,17 @@
       <form method="dialog" id="event-form" novalidate>
         <h2 id="event-dialog-title">Change a program</h2>
         <hr class="thick-thin">
-        <!-- Each answer says what it changes and what it leaves alone. -->
-        <fieldset class="scope" id="f-scope" hidden>
-          <legend id="scope-legend">Which dates?</legend>
-          <label class="choice"><input type="radio" name="ev-scope" value="date" checked>
-            <span class="choice-text"><span class="choice-title" id="scope-date"></span>
-              <span class="choice-note" id="scope-date-note"></span></span></label>
-          <label class="choice"><input type="radio" name="ev-scope" value="weekly">
-            <span class="choice-text"><span class="choice-title" id="scope-weekly"></span>
-              <span class="choice-note" id="scope-weekly-note"></span></span></label>
-        </fieldset>
         <div class="field-grid">
+          <!-- Each answer says what it changes and what it leaves alone. -->
+          <fieldset class="scope span2" id="f-scope" hidden>
+            <legend id="scope-legend">Which dates?</legend>
+            <label class="choice"><input type="radio" name="ev-scope" value="date" checked>
+              <span class="choice-text"><span class="choice-title" id="scope-date"></span>
+                <span class="choice-note" id="scope-date-note"></span></span></label>
+            <label class="choice"><input type="radio" name="ev-scope" value="weekly">
+              <span class="choice-text"><span class="choice-title" id="scope-weekly"></span>
+                <span class="choice-note" id="scope-weekly-note"></span></span></label>
+          </fieldset>
           <div class="field span2">
             <label for="ev-title">Program name</label>
             <input id="ev-title" required maxlength="120">
@@ -230,7 +230,8 @@
             <select id="ev-end"></select>
           </div>
           <details class="field span2 more-options" id="ev-more">
-            <summary>More options <span id="ev-more-hint"></span></summary>
+            <summary><span class="more-title">More options</span>
+              <span class="more-hint" id="ev-more-hint"></span></summary>
             <label for="ev-desc">One friendly line about it</label>
             <input id="ev-desc" maxlength="200">
             <label for="ev-category">Kind of program</label>

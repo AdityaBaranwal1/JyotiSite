@@ -228,17 +228,18 @@ test("changing every week from a later date leaves the weeks before it alone", a
   await expect(yogaOn("21")).toHaveText("11 AM");
 });
 
-test("a past date's 'every week' starts today, never in the past", async ({ page }) => {
+test("a past date's 'every week' starts at the program's next date, never in the past", async ({ page }) => {
   await signIn(page);
   await rowFor(page, "Yoga & Guided Meditation").getByRole("button", { name: /Change/ }).click();
-  await expect(page.locator("#f-scope")).toContainText("Every week, from Saturday, September 19 on");
+  // Monday the 14th is past; the Monday class next meets on the 21st.
+  await expect(page.locator("#f-scope")).toContainText("Every week, from Monday, September 21 on");
   await everyWeek(page);
   await page.selectOption("#ev-start", "09:30");
   await page.click("#ev-save");
   await saved(page);
   const yoga = (await readSchedule()).series.filter((x) => x.title === "Yoga & Guided Meditation");
-  expect(yoga[0].until).toBe("2026-09-18");
-  expect(yoga[1].from).toBe("2026-09-19");
+  expect(yoga[0].until).toBe("2026-09-20");
+  expect(yoga[1].from).toBe("2026-09-21");
 });
 
 test("choosing 'every week' fills in the usual details, not this date's", async ({ page }) => {

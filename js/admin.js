@@ -6,7 +6,7 @@
    The desk is written for volunteers who are seniors themselves: one button
    per job, plain words, one calendar, and nothing that cannot be taken back. */
 
-import { dayLabel, timeRange, weekLabelFor, monthTitle, isToday, formatTime, el, byStartTime } from "./schedule.js";
+import { timeRange, weekLabelFor, monthTitle, isToday, formatTime, el, byStartTime } from "./schedule.js";
 import { expandSeries, describeSeries, activeSeries, zoomKind, isHttpUrl } from "./data-adapter.js";
 import { isoOf, todayIso, dateOf, mondayOf, addDays, longDate, monthCells, groupBy, SHORT_DAYS } from "./dates.js";
 import {
@@ -41,6 +41,7 @@ async function api(method, url, body) {
    are worked out again only when the paper changes, not on every redraw. */
 let occurrences = new Map();
 let seriesIndex = new Map();
+let datesInOrder = [];
 
 function rebuild() {
   seriesIndex = new Map((schedule.series ?? []).map((s) => [s.id, s]));
@@ -50,9 +51,16 @@ function rebuild() {
     ...(schedule.events ?? []).map((e, i) => ({ ...e, kind: "once", eventIndex: i, cancelled: Boolean(e.cancelled) })),
   ], (o) => o.date);
   for (const list of occurrences.values()) list.sort(byStartTime);
+  datesInOrder = [...occurrences.keys()].sort();
 }
 
 const occurrencesOn = (iso) => occurrences.get(iso) ?? [];
+
+/* The first date on or after `fromIso` that a weekly program is on the paper:
+   the date a change "every week from now" really begins. */
+const nextDateOf = (seriesId, fromIso) =>
+  datesInOrder.find((iso) => iso >= fromIso &&
+    occurrencesOn(iso).some((o) => o.kind === "series" && o.seriesId === seriesId)) ?? null;
 const latest = (a, b) => (a > b ? a : b);
 
 /* ---------- saving: every change, straight away ----------
@@ -73,11 +81,23 @@ const payload = (s) => ({
   events: s.events ?? [],
 });
 
-/* The save bar: a sentence, with the change itself picked out. */
-function status(before, change = "", after = "") {
+/* The save bar reads like a receipt: a word for what happened ("Saved",
+   "Undone"), the change itself in full, and a quiet line for what comes
+   next. Read aloud it is one sentence: "Saved: Yoga cancelled on Monday,
+   November 2. Readers see it now." `reassure` marks a line a phone can do
+   without, because the word already says it. */
+function status({ word = "", change = "", note = "", kind = "info", reassure = false } = {}) {
   const host = $("#save-status");
-  host.replaceChildren(before);
-  if (change) host.append(el("strong", null, change), after);
+  host.dataset.kind = kind;
+  const parts = [];
+  if (word) {
+    const w = el("span", "save-word", word);
+    if (change) w.append(el("span", "visually-hidden", ":"));
+    parts.push(w, " ");
+  }
+  if (change) parts.push(el("strong", null, change), ". ");
+  if (note) parts.push(el("span", "save-note" + (reassure ? " save-note--reassure" : ""), note));
+  host.replaceChildren(...parts);
   const next = undoStack.at(-1);
   $("#undo").hidden = !next;
   if (next) $("#undo").setAttribute("aria-label", `Undo: ${next.label}`);
@@ -87,7 +107,7 @@ function commit(label, change, { date = null, isUndo = false } = {}) {
   const before = schedule;
   schedule = change(schedule);
   refresh();
-  status("Saving…");
+  status({ word: "Saving…", kind: "working" });
   pending++;
   saving = saving.then(async () => {
     const res = await api("PUT", "/api/schedule", payload(schedule));
@@ -109,18 +129,23 @@ function commit(label, change, { date = null, isUndo = false } = {}) {
       showLogin("You were signed out, so that last change was not saved. Please sign in again.");
       return false;
     }
-    status(res.error
+    status({ word: "Not saved", kind: "error", note: res.error
       ? `${res.error} Nothing was changed.`
-      : "That change did not go through, so nothing was changed. Please check the internet connection and try again.");
+      : "That change did not go through, so nothing was changed. Please check the internet connection and try again." });
     return false;
   });
   return saving;
 }
 
 function announce(kind, label) {
-  if (kind === "saved") { status("Saved: ", label, ". Readers see it now."); return; }
+  if (kind === "saved") {
+    status({ word: "Saved", change: label, note: "Readers see it now.", kind, reassure: true });
+    return;
+  }
   const next = undoStack.at(-1);
-  status("Undone: ", label, next ? `. Press Undo again to take back: ${next.label}.` : ".");
+  status(next
+    ? { word: "Undone", change: label, note: `Press Undo again to take back: ${next.label}.`, kind }
+    : { word: "Undone", change: label, note: "Readers see it now.", kind, reassure: true });
 }
 
 $("#undo").addEventListener("click", async () => {
@@ -199,7 +224,7 @@ async function openDesk() {
   if (!(await loadSchedule())) return;
   $("#desk-view").hidden = false;
   $("#signout").hidden = false;
-  status("Changes show on the paper straight away.");
+  status({ note: "Changes show on the paper as soon as you make them." });
 }
 
 /* ---------- view plumbing ---------- */
@@ -239,7 +264,7 @@ function step(dir) {
   draw();
 }
 
-const JOIN_LABEL = { default: "Usual Zoom room", custom: "Special Zoom link", phone: "Call to register" };
+const JOIN_LABEL = { default: "in the usual Zoom room", custom: "with a special Zoom link", phone: "people call to register" };
 const emptyNote = (text) => el("p", "desk-empty", text);
 
 function button(label, cls, onClick, ariaLabel) {
@@ -259,13 +284,14 @@ function drawWeek() {
     const sec = el("section", "desk-day");
     sec.dataset.iso = iso;
     const head = el("div", "desk-day-head");
-    head.append(el("span", "day-name", dayLabel(iso) + (isToday(iso) ? "  ·  TODAY" : "")));
+    head.append(el("span", "day-name", longDate(iso)));
+    if (isToday(iso)) head.append(el("span", "day-today", "Today"));
     sec.append(head);
 
     const todays = occurrencesOn(iso);
     if (todays.length === 0) sec.append(emptyNote("Nothing on this day."));
     for (const o of todays) sec.append(eventRow(o));
-    sec.append(button(`+ Add a program on ${dayLabel(iso)}`, "desk-add", () => openEditor({ presetDate: iso })));
+    sec.append(button(`+ Add a program on ${longDate(iso)}`, "desk-add", () => openEditor({ presetDate: iso })));
     return sec;
   });
   panel.replaceChildren(...days);
@@ -278,7 +304,8 @@ function eventRow(o, { onEdit = (occ) => openEditor({ occurrence: occ }) } = {})
   const row = el("div", "desk-event" + (o.cancelled ? " is-cancelled" : ""));
 
   const what = el("span", "de-what");
-  what.append(el("strong", null, o.title), ` · ${timeRange(o.startTime, o.endTime)} · ${JOIN_LABEL[zoomKind(o.zoomLink)]}`);
+  what.append(el("strong", "de-title", o.title),
+    el("span", "de-when", `${timeRange(o.startTime, o.endTime)}, ${JOIN_LABEL[zoomKind(o.zoomLink)]}`));
   if (o.kind === "series") {
     const s = seriesIndex.get(o.seriesId);
     what.append(el("span", "de-origin", (s && describeSeries(s)) || "Every week"));
@@ -332,7 +359,7 @@ function drawMonth() {
     cell.type = "button";
     cell.dataset.iso = iso;
     cell.setAttribute("aria-label",
-      `${dayLabel(iso)}: ${todays.length} program${todays.length === 1 ? "" : "s"}. Press to change this day.`);
+      `${longDate(iso)}: ${todays.length} program${todays.length === 1 ? "" : "s"}. Press to change this day.`);
     cell.append(el("span", "cal-date", String(dateOf(iso).getDate())));
     for (const o of todays.slice(0, 2)) cell.append(el("span", "cal-ev" + (o.cancelled ? " is-cancelled" : ""), o.title));
     if (todays.length > 2) cell.append(el("span", "cal-more", `+${todays.length - 2} more`));
@@ -351,7 +378,7 @@ let dayDialogIso = null;
 
 function openDayEditor(iso) {
   dayDialogIso = iso;
-  $("#day-dialog-title").textContent = dayLabel(iso);
+  $("#day-dialog-title").textContent = longDate(iso);
   drawDayList();
   dayDialog.showModal();
 }
@@ -428,9 +455,12 @@ function openEditor({ occurrence = null, presetDate = null } = {}) {
     startTime: "10:00", endTime: "", category: "", description: "", zoomLink: "default",
   };
   const series = o.kind === "series" ? seriesIndex.get(o.seriesId) ?? null : null;
-  // A weekly change starts at this date, or today if this date is past.
-  const from = latest(o.date, todayIso());
-  const canGoWeekly = o.kind === "new" || Boolean(series && activeSeries([series], from).length);
+  // A weekly change starts at this date, or, if this date is past, at the
+  // program's next date from today: a Wednesday class changes from a
+  // Wednesday, never from "today".
+  const start = latest(o.date, todayIso());
+  const from = series ? nextDateOf(series.id, start) : start;
+  const canGoWeekly = o.kind === "new" || Boolean(from && activeSeries([series], from).length);
   editing = { o, series, from, touched: false };
 
   $("#event-dialog-title").textContent = o.kind === "new" ? "Add a program" : `Change ${o.title}`;
@@ -465,11 +495,11 @@ function applyScope() {
     $("#scope-date-note").textContent = "It goes on the paper on this date only.";
     $("#scope-weekly").textContent = `Every ${day}, from then on`;
     $("#scope-weekly-note").textContent = "It goes on the paper every week until you stop it.";
-  } else if (series) {
+  } else if (series && from) {
     $("#scope-date").textContent = `Only ${longDate(o.date)}`;
     $("#scope-date-note").textContent = "The other weeks stay as they are.";
     $("#scope-weekly").textContent = `Every week, from ${longDate(from)} on`;
-    $("#scope-weekly-note").textContent = `Dates before ${longDate(from)} stay as they were.`;
+    $("#scope-weekly-note").textContent = "Dates before that stay as they were.";
     // Each answer starts from its own details, until the volunteer types.
     if (!editing.touched) fillDetails(weekly ? series : o);
   }
@@ -481,8 +511,8 @@ function applyScope() {
   $("#f-day").hidden = !(series && weekly);
   $("#f-new").hidden = weekly;
   $("#ev-more-hint").textContent = weekly
-    ? "(the description, kind of program, how people join)"
-    : "(the description, how people join, the NEW stamp)";
+    ? "The description, the kind of program, and how people join"
+    : "The description, how people join, and the NEW stamp";
 
   $("#ev-reset").hidden = !(series && !weekly && o.changed);
   $("#ev-delete").hidden = o.kind !== "once";
@@ -677,20 +707,18 @@ async function drawEditions() {
     const label = copyLabel(e.savedAt);
     const row = el("div", "edition-row");
     const when = el("span", "ed-when", `As it was on ${label}`);
-    let what;
-    if (e.changes.length) {
-      what = el("ul", "ed-what");
-      what.setAttribute("aria-label", "Going back would undo");
-      for (const c of e.changes.slice(0, SHOW_CHANGES)) what.append(el("li", null, c));
-      const more = e.changes.length - SHOW_CHANGES;
-      if (more > 0) what.append(el("li", null, `and ${more} more change${more === 1 ? "" : "s"}`));
-    } else {
-      what = el("p", "ed-what", "The same as the paper now.");
-    }
     const restore = button("Go back to this copy", "ed-restore", () => restoreEdition(e, label),
       `Go back to the paper as it was on ${label}`);
     restore.disabled = !e.changes.length;
-    row.append(when, what, restore);
+    if (!e.changes.length) {
+      row.append(when, el("p", "ed-what", "The same as the paper now."), restore);
+      return row;
+    }
+    const what = el("ul", "ed-what");
+    for (const c of e.changes.slice(0, SHOW_CHANGES)) what.append(el("li", null, c));
+    const more = e.changes.length - SHOW_CHANGES;
+    if (more > 0) what.append(el("li", null, `and ${more} more change${more === 1 ? "" : "s"}`));
+    row.append(when, el("p", "ed-label", "Going back undoes:"), what, restore);
     return row;
   }));
 }
@@ -699,11 +727,11 @@ async function restoreEdition(edition, label) {
   const undoing = edition.changes.slice(0, 8).map((c) => `\n  • ${c}`).join("");
   if (!confirm(`Go back to the paper as it was on ${label}?\n\nThis undoes:${undoing}\n\nReaders see it straight away. If you change your mind, press Undo.`)) return;
   await saving;
-  status("Going back…");
+  status({ word: "Going back…", kind: "working" });
   const before = schedule;
   const res = await api("POST", "/api/versions/restore", { id: edition.id });
   if (!res.ok) {
-    status(res.error || "That copy could not be put back. Nothing was changed.");
+    status({ word: "Not saved", kind: "error", note: res.error || "That copy could not be put back. Nothing was changed." });
     return;
   }
   await loadSchedule();             // the restored paper, into the desk
