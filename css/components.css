@@ -14,11 +14,7 @@
   border-bottom: var(--hairline);
   font-size: max(17px, calc(var(--text-size) * 0.82));
 }
-.edition-bar .edition-meta {
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+.edition-bar .edition-meta { font-weight: 700; }
 
 /* Reader text-size control: A / A+ / A++ */
 .reader-controls { display: inline-flex; gap: 6px; align-items: center; }
@@ -65,12 +61,16 @@
   letter-spacing: 0.01em;
   margin: 0;
 }
-.nameplate .flourish { margin: 6px auto 4px; width: min(360px, 70%); }
+.nameplate .flourish { display: block; margin: 8px auto 10px; width: min(360px, 70%); }
+/* The motto under the name, set as the paper speaks: a line of italic
+   serif, not a row of spaced capitals. */
 .nameplate .tagline {
-  font-size: max(17px, calc(var(--text-size) * 0.85));
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  font-weight: 700;
+  display: block;
+  font-family: var(--font-head);
+  font-style: italic;
+  font-size: max(19px, calc(var(--text-size) * 1.2));
+  line-height: 1.3;
+  text-wrap: balance;
 }
 
 /* Compact nameplate for inner pages */
@@ -92,33 +92,18 @@
 }
 .linklike:hover { background: var(--accent); }
 
-/* Dateline bar under the nameplate */
+/* Dateline: the one date the front page prints, the week it covers. */
 .dateline {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 6px 16px;
+  margin: 0;
+  max-width: none;
   padding: 10px 0;
-  border-top: 3px solid var(--accent);
-  border-bottom: var(--hairline);
-  font-family: var(--font-body);
-  font-size: max(17px, calc(var(--text-size) * 0.8));
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  border-top: 4px solid var(--accent);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: max(18px, calc(var(--text-size) * 1.05));
   text-align: center;
   line-height: 1.3;
   text-wrap: balance;
-}
-.dateline strong { font-weight: 700; }
-/* separators: same 16px on both sides so the diamonds sit dead-center */
-.dateline > * + *::before {
-  content: "✦";
-  color: var(--accent);
-  margin-right: 16px;
-  font-size: 0.8em;
-  line-height: 1;
-  vertical-align: 8%;
 }
 
 /* ---------- Weather ear (masthead corner box) ---------- */
@@ -135,8 +120,6 @@
 }
 .weather-ear .we-label {
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   border-bottom: var(--hairline);
   padding-bottom: 4px;
   margin-bottom: 8px;
@@ -174,6 +157,13 @@ nav.paper-nav a {
 }
 nav.paper-nav a { transition: background-color var(--dur-touch) ease-out; }
 nav.paper-nav a:hover { background: var(--accent); }
+/* On a phone the five links sit in two even columns instead of wrapping
+   into ragged rows; the last one takes the full width. */
+@media (max-width: 560px) {
+  nav.paper-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6px; }
+  nav.paper-nav a { justify-content: center; padding-inline: 8px; }
+  nav.paper-nav a:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 nav.paper-nav a[aria-current="page"] {
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 10" preserveAspectRatio="none"><path d="M2 7 Q 18 2 36 6 T 70 5 T 118 6" fill="none" stroke="%23E8940A" stroke-width="3" stroke-linecap="round"/></svg>');
   background-repeat: no-repeat;
@@ -181,20 +171,27 @@ nav.paper-nav a[aria-current="page"] {
   background-size: 90% 9px;
 }
 
-/* ---------- Section headers (THIS WEEK, THE BACK PAGE…) ----------
-   The kicker prints as a block of the second ink — the colored section
-   tag of a broadsheet. Ink on accent = 4.6:1, bold ≥17px (AAA large). */
+/* ---------- Section headers ----------
+   A headline over one marigold rule, then the italic deck. A label above
+   the headline appears only where it says something the headline does not
+   (which crossword this is); it never repeats it. */
 .section-head { margin: 34px 0 18px; }
 .section-head .kicker {
-  display: inline-block;
-  background: var(--accent);
-  color: var(--ink);
-  padding: 4px 12px;
-  margin-bottom: 10px;
+  display: block;
+  margin-bottom: 4px;
 }
 .section-head h2 {
   font-size: calc(var(--text-size) * 2);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+.section-head .byline { margin-top: 10px; }
+
+/* The way to the month page: the paper's second most useful page, so a
+   real button, named for the month, right under the week's deck. */
+.month-link { margin-top: 16px; padding-inline: 22px 26px; }
+.month-link-icon { width: 26px; height: 26px; flex: none; }
+@media (max-width: 560px) {
+  .month-link { display: flex; width: 100%; }
 }
 
 /* ---------- The Datebook (weekly schedule) ---------- */
@@ -212,11 +209,9 @@ nav.paper-nav a[aria-current="page"] {
 }
 .day-head .day-meta { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .day-head .day-name {
-  font-family: var(--font-body);
+  font-family: var(--font-head);
   font-weight: 700;
-  font-size: max(18px, calc(var(--text-size) * 1.05));
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: max(20px, calc(var(--text-size) * 1.2));
 }
 .day-head .day-date {
   font-family: var(--font-head);
@@ -237,6 +232,9 @@ nav.paper-nav a[aria-current="page"] {
   border-bottom: var(--hairline);
 }
 .listing .l-icon svg { width: 56px; height: 56px; }
+/* The next day's marigold rule closes a day; a hairline as well would
+   print two lines where one is meant. */
+.day-body .listing:last-child { border-bottom: 0; }
 .listing .l-main { min-width: 0; }
 .listing .l-title {
   font-family: var(--font-head);
@@ -647,8 +645,9 @@ footer.colophon .foot-links > * {
 }
 
 /* ---------- Almanac box — a tinted standalone item ---------- */
+/* It sits right under its own headline's marigold rule, so it needs no
+   edge of its own: the tint alone sets it apart. */
 .almanac {
-  border-top: 3px solid var(--accent);
   background: var(--accent-soft);
   padding: 14px 18px 12px;
 }
@@ -656,9 +655,7 @@ footer.colophon .foot-links > * {
 .almanac .almanac-date {
   font-family: var(--font-body);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: max(17px, calc(var(--text-size) * 0.85));
+  font-size: max(17px, calc(var(--text-size) * 0.9));
   margin-bottom: 6px;
 }
 .almanac p { font-size: max(18px, calc(var(--text-size) * 1.05)); font-style: italic; max-width: var(--measure); }

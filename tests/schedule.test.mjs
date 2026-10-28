@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   formatTime, timeRange, dayLabel, groupByDay, isToday,
-  weekLabelFor, updatedLabelFor, filterWeek, filterMonth, monthBounds,
+  weekLabelFor, filterWeek, filterMonth, monthBounds,
 } from "../js/schedule.js";
 
 test("formatTime: converts 24h to senior-friendly 12h", () => {
@@ -37,16 +37,10 @@ test("timeRange: dash-free, meridiem stated once when shared", () => {
 });
 
 test("weekLabelFor: Monday-to-Sunday label, dash-free, handles month crossings", () => {
-  assert.equal(weekLabelFor(new Date(2026, 5, 13)), "Week of June 8 to June 14, 2026");
-  assert.equal(weekLabelFor(new Date(2026, 5, 8)),  "Week of June 8 to June 14, 2026");
-  assert.equal(weekLabelFor(new Date(2026, 5, 14)), "Week of June 8 to June 14, 2026"); // Sunday belongs to the week that began Monday
+  assert.equal(weekLabelFor(new Date(2026, 5, 13)), "Week of June 8 to 14, 2026");
+  assert.equal(weekLabelFor(new Date(2026, 5, 8)),  "Week of June 8 to 14, 2026");
+  assert.equal(weekLabelFor(new Date(2026, 5, 14)), "Week of June 8 to 14, 2026"); // Sunday belongs to the week that began Monday
   assert.equal(weekLabelFor(new Date(2026, 6, 1)),  "Week of June 29 to July 5, 2026");
-});
-
-test("updatedLabelFor: renders a friendly Updated line from savedAt", () => {
-  assert.equal(updatedLabelFor("2026-06-13T09:00:00"), "Updated Saturday, June 13");
-  assert.equal(updatedLabelFor(""), null);
-  assert.equal(updatedLabelFor("garbage"), null);
 });
 
 test("filterWeek: keeps only events in the Monday-Sunday week of 'now'", () => {

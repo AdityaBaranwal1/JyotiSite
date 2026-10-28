@@ -109,6 +109,7 @@ p  {
    lose. Both are harder going for older eyes than a plain ragged right. */
 .columns { max-width: var(--measure); }
 .columns > :first-child { margin-top: 0; }
+.columns p + p { margin-top: 0.9em; }
 
 a {
   color: var(--ink);
@@ -127,13 +128,13 @@ a { transition: background-color var(--dur-touch) ease-out; }
   border-radius: 0;
 }
 
-/* Kicker — the all-caps label newspapers set above a headline */
+/* Kicker: a short label for a box or strip ("Address", "Call us"), in
+   plain bold type. Never tracked capitals: words in capitals lose the shape
+   older eyes read them by. */
 .kicker {
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: max(17px, calc(var(--text-size) * 0.85));
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: max(17px, calc(var(--text-size) * 0.9));
 }
 
 /* Standfirst / deck — the italic serif intro line under a headline */
@@ -160,13 +161,13 @@ a { transition: background-color var(--dur-touch) ease-out; }
 }
 
 /* ---------- Rules: the only depth this paper has ----------
-   Two-ink printing: the thick bar runs in the second ink (marigold),
-   the thin line in the first (indigo) — like a spot-color broadsheet. */
+   One bar of the second ink (marigold) under a headline: the spot colour
+   of a two-ink paper. One rule per head; a second line under it only read
+   as a stray. (The class keeps its old name; every page uses it.) */
 hr.thick-thin {
   border: 0;
-  border-top: 3px solid var(--accent);
-  border-bottom: var(--hairline);
-  height: 4px;
+  border-top: 4px solid var(--accent);
+  height: 0;
   margin: 0;
 }
 hr.hairline {

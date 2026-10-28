@@ -41,15 +41,10 @@ export function weekLabelFor(now = new Date()) {
   const { monday, sunday } = weekBounds(now);
   const from = `${MONTHS[monday.getMonth()]} ${monday.getDate()}` +
     (monday.getFullYear() !== sunday.getFullYear() ? `, ${monday.getFullYear()}` : "");
-  const to = `${MONTHS[sunday.getMonth()]} ${sunday.getDate()}, ${sunday.getFullYear()}`;
+  // "June 8 to 14": the month is said again only when the week crosses into the next one.
+  const to = (sunday.getMonth() === monday.getMonth() ? "" : `${MONTHS[sunday.getMonth()]} `) +
+    `${sunday.getDate()}, ${sunday.getFullYear()}`;
   return `Week of ${from} to ${to}`;
-}
-
-export function updatedLabelFor(savedAt) {
-  if (!savedAt) return null;
-  const d = new Date(savedAt);
-  if (Number.isNaN(d.getTime())) return null;
-  return `Updated ${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export function filterWeek(events, now = new Date()) {

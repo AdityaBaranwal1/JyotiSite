@@ -9,9 +9,9 @@ import { getSchedule, describeSeries, activeSeries } from "./data-adapter.js";
 import {
   renderSchedule, renderStaleNotice, renderTimetable, renderDayListings,
   renderStandingPrograms, filterWeek, filterMonth, weekLabelFor,
-  updatedLabelFor, monthTitle, monthBounds,
+  monthTitle, monthBounds,
 } from "./schedule.js";
-import { todayIso, monthKey } from "./dates.js";
+import { todayIso, monthKey, MONTHS } from "./dates.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
 import { transition, motionOK } from "./motion.js";
@@ -54,24 +54,23 @@ async function fillSchedule() {
   const noticeSlot = document.getElementById("notice-slot");
   if (stale && noticeSlot) renderStaleNotice(noticeSlot);
 
+  const now = new Date();
   if (view === "month") {
     initMonthView(datebook, ok ? schedule : null);
   } else {
-    const now = new Date();
     const weekSchedule =
       ok && schedule ? { ...schedule, events: filterWeek(schedule.events, now) } : null;
     renderSchedule(datebook, weekSchedule);
   }
 
-  // The dateline is computed, never typed: week label from today's date,
-  // the Updated line from when the schedule was last saved.
+  // The dateline is computed, never typed.
   const weekEl = document.getElementById("week-label");
-  if (weekEl) weekEl.textContent = weekLabelFor(new Date());
-  const updEl = document.getElementById("updated-line");
-  if (updEl) {
-    const up = updatedLabelFor(schedule?.savedAt);
-    if (up) updEl.textContent = up;
-    else updEl.remove();
+  if (weekEl) weekEl.textContent = weekLabelFor(now);
+  // The month button names the month it opens: "See all of September".
+  const monthLink = document.getElementById("month-link");
+  if (monthLink) {
+    document.getElementById("month-link-label").textContent = `See all of ${MONTHS[now.getMonth()]}`;
+    monthLink.href = `month.html?m=${monthKey(now.getFullYear(), now.getMonth() + 1)}`;
   }
 
   const note = document.getElementById("editors-note-text");
