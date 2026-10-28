@@ -132,6 +132,23 @@ export function clampSize(px) {
 
 /* ---------- Apply + persist + serialize ---------- */
 
+/* A curated font the page does not already load is fetched from Google
+   Fonts the first time a theme asks for it. `role` picks the right weights
+   when one family serves as both heading and body face. */
+export function ensureFont(css, role) {
+  if (typeof document === "undefined") return;
+  const f = CURATED_FONTS.find((x) => x.css === css && x.role === role)
+    ?? CURATED_FONTS.find((x) => x.css === css);
+  if (!f) return;
+  const id = `gf-${f.gf}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${f.gf}&display=swap`;
+  document.head.appendChild(link);
+}
+
 export function applyTheme(theme, root) {
   const t = { ...DEFAULT_THEME, ...theme };
   const el = root || (typeof document !== "undefined" ? document.documentElement : null);

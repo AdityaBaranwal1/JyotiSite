@@ -115,8 +115,7 @@
   }
   /* Grow from the edge they sit against, so a stamp at the right margin
      of a phone never pokes past the screen while it lands. */
-  .day-head .stamp,
-  .month-row .stamp { transform-origin: 100% 50%; }
+  .day-head .stamp  { transform-origin: 100% 50%; }
   .l-title .stamp   { transform-origin: 0 50%; }
 
   /* The month's grid settles once when the page opens. Changing months

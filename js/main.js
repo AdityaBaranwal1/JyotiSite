@@ -3,15 +3,15 @@
    datebook, dateline, editor's note, weather ear. */
 
 import {
-  applyTheme, applyScale, loadSavedTheme, loadScale, saveScale, SCALE_STEPS,
-  CURATED_FONTS,
+  applyTheme, applyScale, loadSavedTheme, loadScale, saveScale, ensureFont,
 } from "./theme.js";
 import { getSchedule, describeSeries, activeSeries } from "./data-adapter.js";
 import {
   renderSchedule, renderStaleNotice, renderTimetable, renderDayListings,
   renderStandingPrograms, filterWeek, filterMonth, weekLabelFor,
-  updatedLabelFor, monthTitle, monthBounds, isoOf,
+  updatedLabelFor, monthTitle, monthBounds,
 } from "./schedule.js";
+import { todayIso, monthKey } from "./dates.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
 import { transition, motionOK } from "./motion.js";
@@ -20,27 +20,10 @@ import { transition, motionOK } from "./motion.js";
 const savedTheme = loadSavedTheme();
 if (savedTheme) {
   applyTheme(savedTheme);
-  ensureFontsLoaded(savedTheme);
+  ensureFont(savedTheme.fontHead, "head");
+  ensureFont(savedTheme.fontBody, "body");
 }
 applyScale(loadScale());
-
-function ensureFontsLoaded(theme) {
-  // If the saved theme uses a curated font not in the default page bundle,
-  // pull it from Google Fonts on demand.
-  const wanted = CURATED_FONTS.filter(
-    (f) => theme.fontHead?.includes(f.name.split(" (")[0]) || theme.fontBody?.includes(f.name.split(" (")[0])
-  );
-  for (const f of wanted) {
-    const id = `gf-${f.gf}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = `https://fonts.googleapis.com/css2?family=${f.gf}&display=swap`;
-      document.head.appendChild(link);
-    }
-  }
-}
 
 /* ---------- Reader text-size control (A / A+ / A++) ---------- */
 function wireReaderControls() {
@@ -77,7 +60,7 @@ async function fillSchedule() {
     const now = new Date();
     const weekSchedule =
       ok && schedule ? { ...schedule, events: filterWeek(schedule.events, now) } : null;
-    renderSchedule(datebook, weekSchedule, { variant: datebookVariant() });
+    renderSchedule(datebook, weekSchedule);
   }
 
   // The dateline is computed, never typed: week label from today's date,
@@ -99,13 +82,6 @@ async function fillSchedule() {
   document.dispatchEvent(new Event("jj:rendered"));
 }
 
-/* The paper prints the "column" datebook. The other two looks stay
-   reachable for comparison at ?style=ledger and ?style=panel. */
-function datebookVariant() {
-  const asked = new URLSearchParams(location.search).get("style");
-  return ["column", "ledger", "panel"].includes(asked) ? asked : "column";
-}
-
 /* Month page: a wall-calendar grid; tap a marked day to read its programs.
    Navigation only reaches months that actually have data. */
 function initMonthView(container, schedule) {
@@ -121,8 +97,7 @@ function initMonthView(container, schedule) {
   // The rhythm, stated once in words, above the month that varies it.
   const standing = document.getElementById("standing-programs");
   if (standing) {
-    const today = isoOf(new Date());
-    renderStandingPrograms(standing, activeSeries(schedule?.series, today), describeSeries);
+    renderStandingPrograms(standing, activeSeries(schedule?.series, todayIso()), describeSeries);
   }
 
   const fromParam = /^\d{4}-\d{2}$/.test(new URLSearchParams(location.search).get("m") || "")
@@ -133,21 +108,17 @@ function initMonthView(container, schedule) {
   let month1 = fromParam ? fromParam[1] : now.getMonth() + 1;
   let selected = null;
 
-  const ym = () => `${year}-${String(month1).padStart(2, "0")}`;
   const shift = (delta) => {
-    let m = month1 + delta, y = year;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    return `${y}-${String(m).padStart(2, "0")}`;
+    const d = new Date(year, month1 - 1 + delta, 1);
+    return monthKey(d.getFullYear(), d.getMonth() + 1);
   };
 
   const pickDefaultDay = () => {
     const inMonth = filterMonth(events, year, month1)
       .map((e) => e.date).sort();
     if (!inMonth.length) return null;
-    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    if (inMonth.includes(todayIso)) return todayIso;
-    return inMonth.find((d) => d >= todayIso) || inMonth[0];
+    const today = todayIso(now);
+    return inMonth.find((d) => d >= today) || inMonth[0];
   };
 
   // The buttons name the month they lead to: "‹ September" says more than
@@ -190,7 +161,7 @@ function initMonthView(container, schedule) {
     if (next) next.disabled = !bounds || shift(1) > bounds.max;
     labelNav(prev, -1, true);
     labelNav(next, 1, false);
-    history.replaceState(null, "", `?m=${ym()}`);
+    history.replaceState(null, "", `?m=${monthKey(year, month1)}`);
   };
   const step = (delta) => transition(() => {
     [year, month1] = shift(delta).split("-").map(Number);

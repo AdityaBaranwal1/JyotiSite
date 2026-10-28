@@ -181,7 +181,6 @@ hr.hairline {
   border: 2px solid var(--ink);
   padding: 20px;
 }
-.panel--ruled { border-width: 1px; }
 
 /* ---------- Buttons: the one modern affordance, framed in ink ---------- */
 .btn {

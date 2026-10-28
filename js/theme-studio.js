@@ -6,7 +6,7 @@
 import {
   DEFAULT_THEME, CURATED_FONTS, SIZE_RANGE,
   validateTheme, applyTheme, serializeTheme, clampSize,
-  saveTheme, loadSavedTheme, clearSavedTheme,
+  saveTheme, loadSavedTheme, clearSavedTheme, ensureFont,
 } from "./theme.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -56,18 +56,6 @@ export function initStudio(root) {
     colorVals[key].textContent = theme[key].toUpperCase();
   }
 
-  function ensureFont(css) {
-    const f = CURATED_FONTS.find((x) => x.css === css);
-    if (!f) return;
-    const id = `gf-${f.gf}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id; link.rel = "stylesheet";
-      link.href = `https://fonts.googleapis.com/css2?family=${f.gf}&display=swap`;
-      document.head.appendChild(link);
-    }
-  }
-
   /* Re-validate and re-render the live proof. Returns whether the theme is ok. */
   function render() {
     const { ok, problems } = validateTheme(theme);
@@ -95,16 +83,10 @@ export function initStudio(root) {
 
     // The proof always previews the *current* picks via inline custom props,
     // so the owner sees exactly what readers would get.
-    ensureFont(theme.fontHead);
-    ensureFont(theme.fontBody);
+    ensureFont(theme.fontHead, "head");
+    ensureFont(theme.fontBody, "body");
     const proof = $("[data-proof]", root);
-    proof.style.setProperty("--ink", theme.ink);
-    proof.style.setProperty("--paper", theme.paper);
-    proof.style.setProperty("--panel", theme.panel);
-    proof.style.setProperty("--accent", theme.accent);
-    proof.style.setProperty("--font-head", theme.fontHead);
-    proof.style.setProperty("--font-body", theme.fontBody);
-    proof.style.setProperty("--text-base", `${clampSize(theme.textBase)}px`);
+    applyTheme(theme, proof);
     proof.style.background = theme.paper;
 
     return ok;

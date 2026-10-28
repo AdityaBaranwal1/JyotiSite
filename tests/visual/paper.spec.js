@@ -6,9 +6,18 @@ import { test, expect } from "@playwright/test";
 const WHEN = new Date("2026-09-19T15:30:00-04:00");
 const freeze = async (page) => page.clock.setFixedTime(WHEN);
 
+/* fonts.ready only waits for faces already asked for; a bold weight first
+   needed mid-render can land after it, and the picture comes out in a
+   stand-in face. Loading every declared face first makes each run the same. */
+const fontsLoaded = (page) =>
+  page.evaluate(async () => {
+    await Promise.all([...document.fonts].map((f) => f.load().catch(() => {})));
+    await document.fonts.ready;
+  });
+
 const settled = async (page) => {
   await page.waitForFunction(() => document.querySelectorAll(".tt-day").length > 0);
-  await page.evaluate(() => document.fonts.ready);
+  await fontsLoaded(page);
 };
 
 test.describe("The Month Ahead", () => {
@@ -90,7 +99,7 @@ test.describe("The Front Page", () => {
     await page.setViewportSize({ width: 1280, height: 1600 });
     await page.goto("/");
     await page.waitForFunction(() => document.querySelectorAll(".listing").length > 0);
-    await page.evaluate(() => document.fonts.ready);
+    await fontsLoaded(page);
     await expect(page.locator("#datebook")).toHaveScreenshot("datebook-week.png");
   });
 });
