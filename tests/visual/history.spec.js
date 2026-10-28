@@ -59,13 +59,17 @@ test("the first change of a sitting keeps the paper from before it", async ({ pa
 
   await cancelYoga(page);
   await expect(page.locator(".edition-row")).toHaveCount(1);
-  await expect(page.locator(".edition-row").first()).toContainText("As it was on");
-  await expect(page.locator(".edition-row").first()).toContainText("170 programs");
+  const copy = page.locator(".edition-row").first();
+  await expect(copy).toContainText("As it was on");
+  // It says what going back to it would undo.
+  await expect(copy.locator(".ed-what li")).toHaveText(["Yoga & Guided Meditation cancelled on Monday, September 14"]);
 
   // More changes in the same sitting do not bury it under near-copies.
   await page.click("#undo");
-  await saved(page, "undone");
+  await saved(page, "Undone");
   await expect(page.locator(".edition-row")).toHaveCount(1);
+  await expect(copy).toContainText("The same as the paper now");
+  await expect(copy.getByRole("button")).toBeDisabled();
 });
 
 test("putting a version back undoes a mistake, and is itself undoable", async ({ page }) => {
@@ -77,8 +81,8 @@ test("putting a version back undoes a mistake, and is itself undoable", async ({
 
   // Put back the paper from before the mistake.
   page.on("dialog", (d) => d.accept());
-  await page.locator(".edition-row").first().getByRole("button", { name: /Put back/ }).click();
-  await saved(page, "back as it was");
+  await page.locator(".edition-row").first().getByRole("button", { name: /Go back/ }).click();
+  await saved(page, "the paper back as it was");
 
   s = await readSchedule();
   expect(s.exceptions.some((x) => x.seriesId === "yoga" && x.date === "2026-09-14" && x.cancelled),
@@ -89,6 +93,11 @@ test("putting a version back undoes a mistake, and is itself undoable", async ({
   await expect(page.locator(".edition-row")).toHaveCount(2);
   // And the desk reloaded the restored paper.
   await expect(rowFor(page, "Yoga & Guided Meditation")).not.toContainText("Cancelled");
+
+  // Going back is one more change Undo can take back.
+  await page.click("#undo");
+  await saved(page, "Undone: the paper back as it was");
+  await expect(rowFor(page, "Yoga & Guided Meditation")).toContainText("Cancelled");
 });
 
 test("only a signed-in volunteer can list or restore versions", async ({ page }) => {

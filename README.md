@@ -17,10 +17,14 @@ Editors are seniors too, so **the Editor's Desk** (`/admin`) is built the same w
 
 - **One password**, no username. A volunteer stays signed in on their device for two months.
 - **Every change goes on the paper the moment it is made.** There is no "publish" step to
-  forget. The **Undo** button at the bottom of the screen takes back the last change, and
-  **Undo a Mistake** puts back the whole paper as it was before any editing sitting.
-- **Weekly programs** (yoga every Monday, and so on) run until someone stops them. Changing
-  one starts today; weeks already past stay as they were printed.
+  forget. The **Undo** button at the bottom of the screen takes changes back one at a time,
+  and the bar always says in words which change it is ("Yoga cancelled on Monday,
+  November 3"). **Earlier Copies of the Paper** go back further: each copy lists what has
+  changed since, and going back to it is itself one more thing Undo can take back.
+- **One calendar.** Weekly programs (yoga every Monday, and so on) sit in the same calendar
+  as everything else and run until someone stops them. Changing one asks, as a phone's
+  calendar does, "only this date, or every week from it on?". A weekly change never
+  reaches back before today.
 - **One date** can be changed or cancelled on its own. A cancelled date stays on the paper
   with a CANCELLED stamp, so nobody turns up to an empty room.
 - Plain words throughout, a short form with the rarer details under "More options", and
@@ -51,8 +55,8 @@ journalctl --user -u jyotisite -f       # its log
 
 `data/schedule.json` **is the live paper.** The desk writes it, and the server reads it on
 every request, so a change shows at once with no rebuild. Each editing sitting files the
-paper it replaced in `data/versions/` (the last 12 are kept); that folder is what **Undo a
-Mistake** reads. `data/admin.json` holds the password hash and is never committed.
+paper it replaced in `data/versions/` (the last 12 are kept); that folder is what **Earlier
+Copies of the Paper** reads. `data/admin.json` holds the password hash and is never committed.
 
 Because the live paper is a file in this repository, be careful with git here: checking out
 an older commit, or `git checkout -- data/`, puts an older paper in front of readers.
@@ -86,7 +90,7 @@ from the frozen `tests/fixtures/schedule.json`, so it never touches the live pap
 | `admin.html`       | The Editor's Desk                                             |
 | `server.mjs`, `server/` | The Express server: the pages, the schedule API, sign-in  |
 | `css/`             | `paper.css` tokens · `components.css` furniture · `motion.css` · `admin.css` |
-| `js/`              | Schedule, weekly programs (`series-edit.js`), the desk, weather, the games |
+| `js/`              | Printing the schedule, the desk's edit rules (`schedule-edit.js`), dates (`dates.js`), weather, the games |
 | `data/`            | The live schedule, the almanac, vendored puzzles              |
 | `docs/design-spec.md` | The design rules: type, colour, spacing, motion           |
 

@@ -203,6 +203,15 @@ test("saves in one sitting file the paper from before it only once", async () =>
   } finally { d.srv.close(); }
 });
 
+test("each earlier copy says what has changed since it", async () => {
+  const d = await freshDesk();
+  try {
+    await d.save("second");
+    const [ed] = await d.editions();
+    assert.deepEqual(ed.changes, ["The note on the front page was rewritten"]);
+  } finally { d.srv.close(); }
+});
+
 test("a sitting ends after the quiet gap, and only the last 12 are kept", async () => {
   const d = await freshDesk({ sittingMs: 0 });
   try {
