@@ -62,8 +62,11 @@ uses the `PORT` the host gives it.
 host attaches a MySQL database and sets `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and
 `DB_PASSWORD` (GoDaddy's app hosting does), the paper and its earlier copies live in two tables
 instead (`jyoti_paper`, `jyoti_editions`; see `server/store.mjs`). On first start the table takes
-the paper from `data/schedule.json`; after that the database is the paper, and the file in the
-repository is no longer read for it. Without `DB_HOST`, everything stays in `data/` as before.
+the paper from `data/schedule.json`; after that the database is the paper. The one exception: a
+`data/schedule.json` saved *later* than the database's paper (edited on the homelab and pushed)
+replaces it on the next start, and the database's copy is filed under **Earlier Copies of the
+Paper**, so the swap can be undone from the desk. Without `DB_HOST`, everything stays in `data/`
+as before.
 
 On the homelab the server runs as a systemd user unit, `jyotisite.service`, from this
 checkout. It starts at boot and restarts itself if it stops:

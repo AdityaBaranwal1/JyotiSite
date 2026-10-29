@@ -7,6 +7,11 @@
 import { readFile, writeFile, rename, readdir, mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
+/* When a paper was last saved; one with no stamp counts as oldest. */
+const savedAt = (text) => {
+  try { return Date.parse(JSON.parse(text).savedAt) || 0; } catch { return 0; }
+};
+
 const missing = (name) => Object.assign(new Error(`${name} is not on file`), { code: "ENOENT" });
 
 export function fileStore(dataDir) {
@@ -32,7 +37,10 @@ export function fileStore(dataDir) {
 /* The paper is one row; each earlier copy is a row under its file name, so
    everything above this file reads the same whichever keeper is in use.
    On first start the table is empty and takes the paper from the data
-   folder; after that the database is the paper and the file is not read. */
+   folder. After that the database is the paper, except that a copy in the
+   repository saved later than it (a paper edited elsewhere and pushed)
+   takes its place on the next start, with the one it replaces filed as an
+   earlier copy so the swap can be undone from the desk. */
 export async function mysqlStore({ host, port, user, password, database }, { seedFile } = {}) {
   const { createPool } = await import("mysql2/promise");
   const db = createPool({
@@ -45,10 +53,20 @@ export async function mysqlStore({ host, port, user, password, database }, { see
   await db.query(`CREATE TABLE IF NOT EXISTS jyoti_editions (
     name VARCHAR(64) PRIMARY KEY, body MEDIUMTEXT NOT NULL
   ) DEFAULT CHARSET=utf8mb4`);
-  const seed = seedFile && await readFile(seedFile, "utf8").catch(() => null);
-  if (seed != null) await db.query("INSERT IGNORE INTO jyoti_paper (id, body) VALUES (1, ?)", [seed]);
-
   const one = async (sql, args) => (await db.query(sql, args))[0][0]?.body ?? null;
+
+  const seed = seedFile && await readFile(seedFile, "utf8").catch(() => null);
+  if (seed != null) {
+    const kept = await one("SELECT body FROM jyoti_paper WHERE id = 1");
+    if (kept == null) {
+      await db.query("INSERT IGNORE INTO jyoti_paper (id, body) VALUES (1, ?)", [seed]);
+    } else if (savedAt(seed) > savedAt(kept)) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      await db.query("INSERT INTO jyoti_editions (name, body) VALUES (?, ?)", [`schedule-${stamp}.json`, kept]);
+      await db.query("UPDATE jyoti_paper SET body = ? WHERE id = 1", [seed]);
+    }
+  }
+
   return {
     readSchedule: () => one("SELECT body FROM jyoti_paper WHERE id = 1"),
     async writeSchedule(text) {

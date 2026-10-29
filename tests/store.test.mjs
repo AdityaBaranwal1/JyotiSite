@@ -89,3 +89,35 @@ for (const [label, make] of keepers) {
     } finally { srv.close(); await store.close?.(); }
   });
 }
+
+if (mysqlUrl) {
+  test("MySQL: a newer paper in the repository replaces the database's, which is filed", async () => {
+    const config = fromUrl(mysqlUrl);
+    const dir = await mkdtemp(join(tmpdir(), "jyoti-store-"));
+    const file = join(dir, "schedule.json");
+    const { createConnection } = await import("mysql2/promise");
+    const c = await createConnection(config);
+    await c.query("DELETE FROM jyoti_paper"); await c.query("DELETE FROM jyoti_editions");
+    await c.end();
+
+    await writeFile(file, JSON.stringify({ savedAt: "2026-10-01T00:00:00Z", editorsNote: "first" }));
+    let store = await mysqlStore(config, { seedFile: file });
+    await store.writeSchedule(JSON.stringify({ savedAt: "2026-10-10T00:00:00Z", editorsNote: "edited on the host" }));
+    await store.close();
+
+    // An older paper in the repository leaves the host's edits alone.
+    store = await mysqlStore(config, { seedFile: file });
+    assert.match(await store.readSchedule(), /edited on the host/);
+    assert.deepEqual(await store.listEditions(), []);
+    await store.close();
+
+    // A newer one takes over, and the host's copy is kept.
+    await writeFile(file, JSON.stringify({ savedAt: "2026-10-20T00:00:00Z", editorsNote: "pushed from the laptop" }));
+    store = await mysqlStore(config, { seedFile: file });
+    try {
+      assert.match(await store.readSchedule(), /pushed from the laptop/);
+      const [filed] = await store.listEditions();
+      assert.match(await store.readEdition(filed), /edited on the host/);
+    } finally { await store.close(); }
+  });
+}
