@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { createApp } from "./server/app.mjs";
+import { fileStore, mysqlStore } from "./server/store.mjs";
 import { loginProblem } from "./server/auth.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -59,7 +60,18 @@ const loginMax = Number(process.env.JYOTI_LOGIN_MAX) || 10;
 const proxyEnv = process.env.JYOTI_TRUST_PROXY;
 const trustProxy = !proxyEnv ? "loopback" : /^\d+$/.test(proxyEnv) ? Number(proxyEnv) : proxyEnv;
 
-createApp({ root, dataDir, credentials, loginMax, trustProxy }).listen(port, () => {
+/* GoDaddy's app hosting attaches a MySQL database and sets DB_* for it.
+   There the paper lives in the database (see server/store.mjs); anywhere
+   else, in data/schedule.json as before. */
+const env = process.env;
+const store = env.DB_HOST
+  ? await mysqlStore(
+      { host: env.DB_HOST, port: env.DB_PORT, user: env.DB_USER, password: env.DB_PASSWORD, database: env.DB_NAME },
+      { seedFile: join(dataDir, "schedule.json") })
+  : fileStore(dataDir);
+if (env.DB_HOST) console.log("  The paper is kept in the hosted MySQL database.");
+
+createApp({ root, dataDir, store, credentials, loginMax, trustProxy }).listen(port, () => {
   if (!built) {
     console.log("  Serving source files (no dist/ yet). Run `npm run build` for the built paper.");
   }

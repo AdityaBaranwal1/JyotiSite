@@ -3,11 +3,11 @@
    Public reads are open; writes require a volunteer session. */
 
 import express from "express";
-import { readFile, writeFile, rename, readdir, mkdir, unlink } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { normalizeSchedule, isValidEvent } from "../js/data-adapter.js";
 import { describeChanges } from "../js/changes.js";
 import { verifyPassword, issueToken, verifyToken, makeRateLimiter } from "./auth.mjs";
+import { fileStore } from "./store.mjs";
 
 const COOKIE = "jyoti_session";
 /* Volunteers stay signed in for two months on their own device: a password
@@ -17,6 +17,7 @@ const SESSION_MS = 60 * 24 * 60 * 60 * 1000;
 export function createApp({
   root,
   dataDir,
+  store = fileStore(dataDir),   // the live paper and its earlier copies (store.mjs)
   credentials,          // { username, salt, hash, sessionSecret }
   loginWindowMs = 15 * 60 * 1000,
   loginMax = 10,
@@ -48,8 +49,6 @@ export function createApp({
   });
   app.use(express.json({ limit: "1mb" }));
 
-  const schedulePath = join(dataDir, "schedule.json");
-  const versionsDir = join(dataDir, "versions");
   const allowLogin = makeRateLimiter({ windowMs: loginWindowMs, max: loginMax });
 
   /* ---------- earlier copies ----------
@@ -63,7 +62,7 @@ export function createApp({
      actually wants back ("how it was before I sat down") under a dozen
      near-copies. Within a sitting, the paper from before it is already on
      file and the save is not filed again. A restore always files. */
-  const readCurrent = () => readFile(schedulePath, "utf8").catch(() => null);
+  const readCurrent = () => store.readSchedule();
 
   async function archiveCurrent({ sitting = false, current } = {}) {
     current ??= await readCurrent();
@@ -73,24 +72,19 @@ export function createApp({
       try { savedAt = Date.parse(JSON.parse(current).savedAt); } catch { /* file it */ }
       if (Date.now() - savedAt < sittingMs) return null;
     }
-    await mkdir(versionsDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const name = `schedule-${stamp}.json`;
-    await writeFile(join(versionsDir, name), current);
+    await store.addEdition(name, current);
 
     // Keep the last `keepVersions`; older editions are of no use to anyone.
-    const kept = (await readdir(versionsDir)).filter((f) => VERSION_FILE.test(f)).sort();
+    const kept = (await store.listEditions()).filter((f) => VERSION_FILE.test(f)).sort();
     for (const old of kept.slice(0, Math.max(0, kept.length - keepVersions))) {
-      await unlink(join(versionsDir, old)).catch(() => {});
+      await store.dropEdition(old);
     }
     return name;
   }
 
-  async function writeSchedule(text) {
-    const tmp = schedulePath + ".tmp";
-    await writeFile(tmp, text);
-    await rename(tmp, schedulePath);
-  }
+  const writeSchedule = (text) => store.writeSchedule(text);
 
   /* ---------- session helpers ---------- */
   const readCookie = (req) => {
@@ -135,9 +129,15 @@ export function createApp({
   app.get("/api/me", (req, res) => res.json({ signedIn: hasSession(req) }));
 
   /* ---------- schedule API ---------- */
+  const readPaper = async () => {
+    const text = await readCurrent();
+    if (text == null) throw new Error("no paper on file yet");
+    return JSON.parse(text);
+  };
+
   app.get("/api/schedule", async (_req, res) => {
     try {
-      res.json(normalizeSchedule(JSON.parse(await readFile(schedulePath, "utf8"))));
+      res.json(normalizeSchedule(await readPaper()));
     } catch {
       res.status(500).json({ error: "The schedule could not be read." });
     }
@@ -146,7 +146,7 @@ export function createApp({
   /* Raw (unresolved) copy for the editor, so "default" markers survive editing. */
   app.get("/api/schedule/raw", requireSession, async (_req, res) => {
     try {
-      res.json(JSON.parse(await readFile(schedulePath, "utf8")));
+      res.json(await readPaper());
     } catch {
       res.status(500).json({ error: "The schedule could not be read." });
     }
@@ -191,14 +191,13 @@ export function createApp({
   app.get("/api/versions", requireSession, async (_req, res) => {
     try {
       let names = [];
-      try { names = (await readdir(versionsDir)).filter((f) => VERSION_FILE.test(f)); }
-      catch { /* nothing filed yet */ }
+      names = (await store.listEditions()).filter((f) => VERSION_FILE.test(f));
       let now = {};
       try { now = JSON.parse(await readCurrent()); } catch { /* nothing saved yet */ }
       const editions = [];
       for (const name of names.sort().reverse()) {
         try {
-          const raw = JSON.parse(await readFile(join(versionsDir, name), "utf8"));
+          const raw = JSON.parse(await store.readEdition(name));
           editions.push({ id: name, savedAt: raw.savedAt ?? null, changes: describeChanges(raw, now) });
         } catch { /* skip an unreadable file rather than fail the list */ }
       }
@@ -215,7 +214,7 @@ export function createApp({
       return res.status(400).json({ error: "That is not an edition we filed." });
     }
     try {
-      const text = await readFile(join(versionsDir, id), "utf8");
+      const text = await store.readEdition(id);
       JSON.parse(text);                 // refuse to restore something unreadable
       await archiveCurrent();           // the restore is itself undoable
       await writeSchedule(text);
@@ -233,8 +232,14 @@ export function createApp({
      from the data directory so a rebuild is never needed to publish a week.
      That directory also holds the volunteer login (admin.json: the password
      hash and the secret that signs sessions) and the filed editions, so only
-     the paper's own public files are let through; everything else is a 404. */
-  const PUBLIC_DATA = /^\/(schedule\.json|almanac\.json|crosswords\/[\w.-]+\.json)$/;
+     the paper's own public files are let through; everything else is a 404.
+     The paper itself comes from the store, which may be a database. */
+  app.get("/data/schedule.json", async (_req, res) => {
+    const text = await readCurrent();
+    if (text == null) return res.sendStatus(404);
+    res.set("Cache-Control", "no-cache").type("json").send(text);
+  });
+  const PUBLIC_DATA = /^\/(almanac\.json|crosswords\/[\w.-]+\.json)$/;
   app.use("/data", (req, res, next) => (PUBLIC_DATA.test(req.path) ? next() : res.sendStatus(404)),
     express.static(dataDir, {
       dotfiles: "deny",

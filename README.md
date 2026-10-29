@@ -52,11 +52,18 @@ Give it the same record as a secret instead:
 | Secret | Value |
 |---|---|
 | `JYOTI_ADMIN` | the line `node tools/set-admin-password.mjs --env` prints (pipe the password in as above). It holds the password hash and the session secret, so treat it like the password. |
-| `JYOTI_DATA_DIR` | a folder the host keeps between deploys, starting as a copy of `data/`, so the desk's saves survive a redeploy |
 | `JYOTI_TRUST_PROXY` | only if the host has its own proxy in front: `1` for one hop. The default, `loopback`, is right for Tailscale Funnel |
 
 The build command is `npm ci && npm run build`, the start command `npm start`, and the server
 uses the `PORT` the host gives it.
+
+**Where the desk's saves go there.** A redeploy pulls the repository again, and
+`data/schedule.json` is in it, so a save written to that file would be overwritten. When the
+host attaches a MySQL database and sets `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and
+`DB_PASSWORD` (GoDaddy's app hosting does), the paper and its earlier copies live in two tables
+instead (`jyoti_paper`, `jyoti_editions`; see `server/store.mjs`). On first start the table takes
+the paper from `data/schedule.json`; after that the database is the paper, and the file in the
+repository is no longer read for it. Without `DB_HOST`, everything stays in `data/` as before.
 
 On the homelab the server runs as a systemd user unit, `jyotisite.service`, from this
 checkout. It starts at boot and restarts itself if it stops:
