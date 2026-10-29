@@ -4,7 +4,7 @@
 
 import express from "express";
 import { readFile, writeFile, rename, readdir, mkdir, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { normalizeSchedule, isValidEvent } from "../js/data-adapter.js";
 import { describeChanges } from "../js/changes.js";
 import { verifyPassword, issueToken, verifyToken, makeRateLimiter } from "./auth.mjs";
@@ -22,13 +22,30 @@ export function createApp({
   loginMax = 10,
   keepVersions = 12,
   sittingMs = 15 * 60 * 1000,   // saves this close together are one sitting
+  trustProxy = "loopback",
 } = {}) {
   const app = express();
   app.disable("x-powered-by");
   /* Public visitors arrive through Tailscale Funnel, which proxies from this
      machine. Trusting only a loopback proxy lets the login limiter see each
-     visitor's own address, while nobody can claim one from outside. */
-  app.set("trust proxy", "loopback");
+     visitor's own address, while nobody can claim one from outside. A host
+     with its own proxy in front says which one (server.mjs). */
+  app.set("trust proxy", trustProxy);
+
+  /* Browsers must not second-guess a file's type, and links out of the paper
+     carry no path. The desk may only be framed by the paper itself (its
+     preview), so another site cannot lay it under a decoy and steer clicks.
+     The rest of the paper stays frameable: the homelab dashboard shows it. */
+  const DESK = /^\/admin(\.html)?$/;
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "same-origin");
+    if (DESK.test(req.path)) {
+      res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    }
+    next();
+  });
   app.use(express.json({ limit: "1mb" }));
 
   const schedulePath = join(dataDir, "schedule.json");
@@ -223,6 +240,20 @@ export function createApp({
       dotfiles: "deny",
       setHeaders: (res) => res.setHeader("Cache-Control", "no-cache"),
     }));
+
+  /* Unbuilt, the root is the source folder, and its data/ is the live data
+     directory. The route above only catches that exact spelling: an encoded
+     one ("/%64ata/admin.json", "/data%2fadmin.json") would reach the login
+     through the static server below. So nothing that resolves into a data
+     folder is served from there, however it is spelled. */
+  const dataDirs = [resolve(dataDir), resolve(root, "data")];
+  app.use((req, res, next) => {
+    let target;
+    try { target = resolve(root, "." + decodeURIComponent(req.path)); }
+    catch { return res.sendStatus(400); }
+    const inData = dataDirs.some((dir) => target === dir || target.startsWith(dir + sep));
+    return inData ? res.sendStatus(404) : next();
+  });
 
   app.get("/admin", (_req, res) => res.sendFile(join(root, "admin.html")));
   // Photos and the logo live in public/, which the build copies into dist/.

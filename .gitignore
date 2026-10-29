@@ -1,5 +1,7 @@
 node_modules/
 data/admin.json
+.env
+.env.*
 .DS_Store
 Thumbs.db
 *.log

@@ -23,6 +23,6 @@ export default async function globalSetup() {
   await writeFile(`${DEST}/admin.json`, JSON.stringify({
     username: "volunteer",
     ...(await hashPassword("localdevpassword")),
-    sessionSecret: "visual-suite-only",
+    sessionSecret: "visual-suite-only-not-a-real-secret",
   }));
 }

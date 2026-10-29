@@ -40,7 +40,23 @@ PORT=8090 node server.mjs
 ```
 
 Then open <http://localhost:8090> for the paper and <http://localhost:8090/admin> for the desk.
-Setting a new password signs every device out, so tell the volunteers first.
+Setting a new password signs every device out, so tell the volunteers first. To keep the
+password out of the shell's history, pipe it in instead:
+`read -rs PW && printf %s "$PW" | node tools/set-admin-password.mjs`.
+
+### On a host that builds from GitHub
+
+`data/admin.json` is never committed, so a host that deploys from the repository has no login.
+Give it the same record as a secret instead:
+
+| Secret | Value |
+|---|---|
+| `JYOTI_ADMIN` | the line `node tools/set-admin-password.mjs --env` prints (pipe the password in as above). It holds the password hash and the session secret, so treat it like the password. |
+| `JYOTI_DATA_DIR` | a folder the host keeps between deploys, starting as a copy of `data/`, so the desk's saves survive a redeploy |
+| `JYOTI_TRUST_PROXY` | only if the host has its own proxy in front: `1` for one hop. The default, `loopback`, is right for Tailscale Funnel |
+
+The build command is `npm ci && npm run build`, the start command `npm start`, and the server
+uses the `PORT` the host gives it.
 
 On the homelab the server runs as a systemd user unit, `jyotisite.service`, from this
 checkout. It starts at boot and restarts itself if it stops:

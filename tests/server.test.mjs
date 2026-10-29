@@ -1,11 +1,12 @@
 import { test, before, after } from "node:test";
 import { request } from "node:http";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { hashPassword, verifyPassword } from "../server/auth.mjs";
+import { scrypt } from "node:crypto";
+import { hashPassword, verifyPassword, loginProblem } from "../server/auth.mjs";
 import { createApp } from "../server/app.mjs";
 
 const siteRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -17,6 +18,26 @@ test("hashPassword/verifyPassword: roundtrip accepts the right password only", a
   assert.ok(rec.salt && rec.hash);
   assert.equal(await verifyPassword("chai-and-sudoku", rec), true);
   assert.equal(await verifyPassword("wrong-guess", rec), false);
+});
+
+test("a login hashed before the stronger settings still signs in", async () => {
+  // Node's scrypt defaults, which every record made before had no field for.
+  const salt = "00112233445566778899aabbccddeeff";
+  const hash = await new Promise((res, rej) =>
+    scrypt("old-password", salt, 64, (err, key) => (err ? rej(err) : res(key.toString("hex")))));
+  assert.equal(await verifyPassword("old-password", { salt, hash }), true);
+  assert.equal(await verifyPassword("wrong-guess", { salt, hash }), false);
+  assert.deepEqual((await hashPassword("x")).scrypt, { N: 16384, r: 8, p: 5 }, "new records say how they were made");
+});
+
+test("loginProblem: only a whole record with a long session secret is usable", async () => {
+  const good = { username: "volunteer", ...(await hashPassword("pw-12345678")), sessionSecret: "a".repeat(64) };
+  assert.equal(loginProblem(good), null);
+  assert.equal(loginProblem({ ...good, scrypt: undefined }), null, "older records are fine");
+  assert.match(loginProblem({ ...good, sessionSecret: "short" }), /session secret/);
+  assert.match(loginProblem({ ...good, hash: "" }), /hash/);
+  assert.match(loginProblem({ ...good, scrypt: { N: 2 ** 30, r: 8, p: 1 } }), /settings/);
+  assert.match(loginProblem("{}"), /not a login record/);
 });
 
 /* ---------- API integration (real HTTP against an ephemeral port) ---------- */
@@ -248,4 +269,43 @@ test("the data folder serves the paper, never the login or the filed editions", 
                       "/data/crosswords/%2e%2e/admin.json"]) {
     assert.equal(await rawStatus(path), 404, `${path} must not be served`);
   }
+});
+
+test("served unbuilt, no spelling of the data folder reaches the login", async () => {
+  // The source folder as root, its data/ the data directory: how a fresh
+  // clone runs before `npm run build`.
+  const root = await mkdtemp(join(tmpdir(), "jyoti-src-"));
+  await mkdir(join(root, "data", "versions"), { recursive: true });
+  await writeFile(join(root, "index.html"), "<h1>Jeevan Jyoti</h1>");
+  await writeFile(join(root, "data", "schedule.json"), "{}");
+  await writeFile(join(root, "data", "admin.json"), JSON.stringify({ sessionSecret: "do-not-serve" }));
+  await writeFile(join(root, "data", "versions", "schedule-1.json"), "{}");
+  const app = createApp({ root, dataDir: join(root, "data"), credentials: null });
+  const srv = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
+  const url = `http://127.0.0.1:${srv.address().port}`;
+  const rawStatus = (path) => new Promise((resolve, reject) => {
+    request(url + "/", { path }, (res) => { res.resume(); resolve(res.statusCode); })
+      .on("error", reject).end();
+  });
+  try {
+    assert.equal(await rawStatus("/index.html"), 200);
+    assert.equal(await rawStatus("/data/schedule.json"), 200);
+    for (const path of ["/%64ata/admin.json", "/data%2fadmin.json", "/%64ata%2fadmin.json",
+                        "/x/..%2f%64ata/admin.json", "/%64ata/versions/schedule-1.json", "/%64ata/"]) {
+      assert.equal(await rawStatus(path), 404, `${path} must not be served`);
+    }
+    assert.equal(await rawStatus("/%E0%A4"), 400, "a broken encoding is refused, not crashed on");
+  } finally { srv.close(); }
+});
+
+test("the desk cannot be framed by another site; the paper still can", async () => {
+  for (const path of ["/admin", "/admin.html"]) {
+    const res = await fetch(base + path);
+    assert.equal(res.headers.get("content-security-policy"), "frame-ancestors 'self'", path);
+    assert.equal(res.headers.get("x-frame-options"), "SAMEORIGIN", path);
+  }
+  const front = await fetch(base + "/");
+  assert.equal(front.headers.get("content-security-policy"), null);
+  assert.equal(front.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(front.headers.get("referrer-policy"), "same-origin");
 });
