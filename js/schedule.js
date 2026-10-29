@@ -7,6 +7,7 @@ import {
   MONTHS, DAYS, SHORT_DAYS, isoOf, dateOf, addDays, mondayOf, monthKey, monthCells, groupBy,
 } from "./dates.js";
 import { categoryIcon } from "./icons.js";
+import { joinLabel } from "./data-adapter.js";
 
 export const DEFAULT_PHONE = "845-709-2216";
 
@@ -128,8 +129,9 @@ function renderListing(event) {
     const a = el("a", "btn");
     if (event.zoomLink) {
       a.href = event.zoomLink;
-      a.textContent = "Join on Zoom";
-      a.setAttribute("aria-label", `Join ${event.title} on Zoom`);
+      const label = joinLabel(event.zoomLink);       // "Join on Google Meet"
+      a.textContent = label;
+      a.setAttribute("aria-label", label.replace(/^Join/, `Join ${event.title}`));
     } else {
       const phone = event.phone || DEFAULT_PHONE;
       a.href = `tel:${phone.replace(/[^\d+]/g, "")}`;

@@ -74,7 +74,7 @@
           <a class="btn start-btn" href="#schedule">Change or cancel a program</a>
           <button type="button" class="btn start-btn" id="start-add">Add a new program</button>
           <a class="btn start-btn" href="#note">Write the note on the front page</a>
-          <a class="btn start-btn" href="#zoom">Change the Zoom link</a>
+          <a class="btn start-btn" href="#zoom">Change the meeting link</a>
         </nav>
         <p class="byline">Changes show on the paper as soon as you make them. Pressed the wrong
           thing? The <strong>Undo</strong> button at the bottom of the screen takes it back.</p>
@@ -123,15 +123,15 @@
         </div>
       </section>
 
-      <!-- The usual Zoom room -->
+      <!-- The usual meeting room -->
       <section id="zoom" class="feature" aria-labelledby="zoom-h">
         <div class="section-head">
-          <span class="kicker">The usual Zoom room</span>
-          <h2 id="zoom-h">The Zoom Link</h2>
+          <span class="kicker">The usual meeting room</span>
+          <h2 id="zoom-h">The Meeting Link</h2>
           <hr class="thick-thin">
         </div>
-        <label for="default-zoom">The link for programs held in the usual Zoom room</label>
-        <input id="default-zoom" type="url" placeholder="https://zoom.us/j/...">
+        <label for="default-zoom">The Google Meet or Zoom link for programs held in the usual room</label>
+        <input id="default-zoom" type="url" placeholder="https://meet.google.com/...">
         <p class="byline">Change it once here and every program in the usual room follows along.</p>
         <div class="field-save">
           <button type="button" class="btn" id="zoom-save">Save the link</button>
@@ -250,12 +250,12 @@
             <fieldset>
               <legend>How do people join?</legend>
               <label class="radio-row"><input type="radio" name="ev-zoom" value="default" checked>
-                The usual Zoom room</label>
+                The usual meeting room</label>
               <label class="radio-row"><input type="radio" name="ev-zoom" value="custom">
-                A special Zoom link:</label>
-              <input id="ev-zoom-url" type="url" placeholder="https://zoom.us/j/..." aria-label="Special Zoom link">
+                A special meeting link:</label>
+              <input id="ev-zoom-url" type="url" placeholder="https://meet.google.com/..." aria-label="Special meeting link">
               <label class="radio-row"><input type="radio" name="ev-zoom" value="phone">
-                No Zoom, they call us to register</label>
+                No video call, they call us to register</label>
             </fieldset>
             <label class="radio-row" id="f-new"><input type="checkbox" id="ev-new"> Stamp it NEW</label>
           </details>

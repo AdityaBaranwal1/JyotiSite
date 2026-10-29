@@ -1,6 +1,6 @@
 {
-  "savedAt": "2026-10-26T19:49:56.996Z",
-  "defaultZoomLink": "https://zoom.us/j/0000000001",
+  "savedAt": "2026-10-29T22:55:11.142Z",
+  "defaultZoomLink": "https://meet.google.com/ajm-ynvq-smg",
   "editorsNote": "The cooler mornings are here, friends, and the paper is full again. Our computer class has moved to a new Tuesday hour, the art table turns to autumn colour, and on the first Saturday of October a pharmacist joins us to look over your medicine list, free of charge. Every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together.",
   "series": [
     {
@@ -47,7 +47,7 @@
       "category": "stock market",
       "startTime": "15:00",
       "endTime": "16:00",
-      "zoomLink": "https://zoom.us/j/0000000004",
+      "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=TH",
       "from": "2026-06-08"
     },

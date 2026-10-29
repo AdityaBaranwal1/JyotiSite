@@ -55,7 +55,7 @@ function phrase({ kind, title, to }, dates) {
 /* The changes made going from `before` to `after` (two raw schedules), as
    sentences in date order. */
 export function describeChanges(before, after) {
-  // Programs in the usual Zoom room are compared as if both copies had the
+  // Programs in the usual meeting room are compared as if both copies had the
   // same room: a new room link is one line of its own, not one per program.
   const room = after?.defaultZoomLink;
   const byDate = (raw) =>
@@ -75,6 +75,6 @@ export function describeChanges(before, after) {
 
   const say = (a, b) => String(a ?? "").trim() !== String(b ?? "").trim();
   if (say(before?.editorsNote, after?.editorsNote)) lines.unshift("The note on the front page was rewritten");
-  if (say(before?.defaultZoomLink, after?.defaultZoomLink)) lines.unshift("The Zoom link was changed");
+  if (say(before?.defaultZoomLink, after?.defaultZoomLink)) lines.unshift("The meeting link was changed");
   return lines;
 }

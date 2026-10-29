@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeEvent, normalizeSchedule, getSchedule } from "../js/data-adapter.js";
+import { normalizeEvent, normalizeSchedule, getSchedule, joinLabel } from "../js/data-adapter.js";
 
 const valid = {
   title: "Yoga & Guided Meditation",
@@ -104,4 +104,12 @@ test("getSchedule: failure with no cache returns ok:false and a null schedule", 
   const r = await getSchedule({ fetchImpl: async () => { throw new Error("offline"); }, storage: fakeStorage() });
   assert.equal(r.ok, false);
   assert.equal(r.schedule, null);
+});
+
+test("joinLabel: the button names the service the link opens", () => {
+  assert.equal(joinLabel("https://meet.google.com/abc-defg-hij"), "Join on Google Meet");
+  assert.equal(joinLabel("https://zoom.us/j/123"), "Join on Zoom");
+  assert.equal(joinLabel("https://us02web.zoom.us/j/123"), "Join on Zoom");
+  assert.equal(joinLabel("https://zoom.us.example.com/j/1"), "Join online", "a look-alike host is not Zoom");
+  assert.equal(joinLabel("https://teams.microsoft.com/l/x"), "Join online");
 });

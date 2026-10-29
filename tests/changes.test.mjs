@@ -39,7 +39,7 @@ test("a rename, added programs, the note and the link", () => {
   after = addEvent(after, { title: "Old fair", date: "2026-10-01", startTime: "12:00" });
   after = { ...after, editorsNote: "Changed", defaultZoomLink: "https://zoom.us/j/2" };
   const lines = say(paper(), after);
-  assert.equal(lines[0], "The Zoom link was changed");
+  assert.equal(lines[0], "The meeting link was changed");
   assert.equal(lines[1], "The note on the front page was rewritten");
   assert.equal(lines[2], "Old fair added on Thursday, October 1");
   assert.match(lines[3], /^Yoga is now Tai Chi, from Monday, November 2 on$/);

@@ -128,8 +128,23 @@ export function expandSeries(series, exceptions = [], { includeSkipped = false, 
 
 export const isHttpUrl = (s) => /^https?:\/\//i.test(String(s ?? "").trim());
 
+/* Which service a meeting link opens, named as people know it, so the
+   button says where it takes them. Unknown hosts are just "online". */
+export function meetingService(link) {
+  let host = "";
+  try { host = new URL(link).hostname.toLowerCase(); } catch { return null; }
+  if (host === "meet.google.com") return "Google Meet";
+  if (host === "zoom.us" || host.endsWith(".zoom.us") || host === "zoom.com" || host.endsWith(".zoom.com")) return "Zoom";
+  return null;
+}
+
+export const joinLabel = (link) => {
+  const service = meetingService(link);
+  return service ? `Join on ${service}` : "Join online";
+};
+
 /* How people join a program, from its stored link: "default" (the usual
-   Zoom room), "custom" (a link of its own), or "phone" (call to register). */
+   meeting room), "custom" (a link of its own), or "phone" (call to register). */
 export function zoomKind(link) {
   if (link === "default") return "default";
   return isHttpUrl(link) ? "custom" : "phone";
@@ -152,7 +167,7 @@ export function normalizeEvent(raw, defaultZoomLink = null) {
   const date = String(raw.date).trim();
   const startTime = String(raw.startTime).trim();
 
-  // "default" points at the schedule-wide default Zoom room, so the link can
+  // "default" points at the schedule-wide default meeting room, so the link can
   // change once (in the admin) and every event follows it.
   let zoomLink = String(raw.zoomLink ?? "").trim();
   if (zoomLink === "default") zoomLink = defaultZoomLink ?? "";

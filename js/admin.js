@@ -204,7 +204,7 @@ $("#login-form").addEventListener("submit", async (e) => {
 
 $("#signout").addEventListener("click", async () => {
   if ((noteChanged() || zoomChanged()) &&
-      !confirm("The note or the Zoom link has changes you have not saved. Sign out anyway?")) return;
+      !confirm("The note or the meeting link has changes you have not saved. Sign out anyway?")) return;
   await api("POST", "/api/logout");
   location.reload();
 });
@@ -264,7 +264,7 @@ function step(dir) {
   draw();
 }
 
-const JOIN_LABEL = { default: "in the usual Zoom room", custom: "with a special Zoom link", phone: "people call to register" };
+const JOIN_LABEL = { default: "in the usual meeting room", custom: "with a special meeting link", phone: "people call to register" };
 const emptyNote = (text) => el("p", "desk-empty", text);
 
 function button(label, cls, onClick, ariaLabel) {
@@ -541,7 +541,7 @@ function readForm() {
     zoomLink = $("#ev-zoom-url").value.trim();
     if (!isHttpUrl(zoomLink)) {
       $("#ev-more").open = true;
-      return { error: "The special Zoom link should start with https://" };
+      return { error: "The special meeting link should start with https://" };
     }
   }
   return {
@@ -615,7 +615,7 @@ $("#ev-reset").addEventListener("click", () => {
 
 $("#ev-cancel").addEventListener("click", () => dialog.close());
 
-/* ---------- the note and the Zoom link ----------
+/* ---------- the note and the meeting link ----------
    These are typed, not clicked, so they save on their button rather than on
    every keystroke. */
 const noteChanged = () => $("#editors-note").value !== (schedule.editorsNote || "");
@@ -646,7 +646,7 @@ $("#zoom-save").addEventListener("click", async () => {
     $("#zoom-state").textContent = "The link should start with https://";
     return;
   }
-  const ok = await commit("the Zoom link changed", (s) => ({ ...s, defaultZoomLink }));
+  const ok = await commit("the meeting link changed", (s) => ({ ...s, defaultZoomLink }));
   if (ok) $("#zoom-state").textContent = "Saved.";
 });
 
