@@ -1,451 +1,143 @@
 {
-  "savedAt": "2026-10-29T22:55:11.142Z",
+  "savedAt": "2026-11-06T16:22:48.988Z",
   "defaultZoomLink": "https://meet.google.com/ajm-ynvq-smg",
-  "editorsNote": "The cooler mornings are here, friends, and the paper is full again. Our computer class has moved to a new Tuesday hour, the art table turns to autumn colour, and on the first Saturday of October a pharmacist joins us to look over your medicine list, free of charge. Every program is free, every neighbor is welcome, and if Zoom gives you any trouble, just call us and we will walk you through it together.",
+  "editorsNote": "Welcome, friends. This is our regular schedule. Every program is free of cost, and all seniors are welcome. Most programs meet on Google Meet: press the button beside a program to join. Bridge, karaoke and the Friday art and painting class meet in person at 31 Zukor Road, New City. Suggestions for current or new activities are always welcome. Call us, or speak to any coordinator.",
   "series": [
     {
-      "id": "yoga",
-      "title": "Yoga & Guided Meditation",
-      "shortTitle": "Yoga",
-      "description": "Gentle chair yoga and breathing with Smita ji. No experience needed.",
+      "id": "exercise",
+      "title": "Exercise",
+      "description": "Coordinators: Sheela Bajaj and Raji Iyer.",
       "category": "yoga",
-      "startTime": "10:00",
-      "endTime": "11:00",
+      "startTime": "10:30",
       "zoomLink": "default",
-      "rrule": "FREQ=WEEKLY;BYDAY=MO",
-      "from": "2026-06-08"
+      "rrule": "FREQ=WEEKLY;BYDAY=MO,TU,WE,FR",
+      "from": "2026-11-01"
     },
     {
-      "id": "computer",
-      "title": "Computer & Phone Helpful Hints",
-      "shortTitle": "Computer Help",
-      "description": "Bring your questions! Photos, WhatsApp, passwords, whatever is stuck.",
-      "category": "computer",
-      "startTime": "15:00",
-      "endTime": "16:00",
+      "id": "bridge",
+      "title": "Bridge",
+      "description": "In person at 31 Zukor Road, New City. Coordinator: Hiten Vasa.",
+      "category": "social",
+      "startTime": "17:00",
+      "rrule": "FREQ=WEEKLY;BYDAY=MO,WE",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "yoga-tuesday",
+      "title": "Yoga",
+      "description": "Coordinators: Kiran Khandke, Mamta Arya and Rajeshwari Iyer.",
+      "category": "yoga",
+      "startTime": "18:30",
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=TU",
-      "from": "2026-06-08"
+      "from": "2026-11-01"
     },
     {
-      "id": "art",
-      "title": "Art Class",
-      "shortTitle": "Art",
-      "description": "The art table, with Mrs. Kapoor.",
-      "category": "art",
-      "startTime": "11:00",
-      "endTime": "12:30",
-      "zoomLink": "default",
-      "rrule": "FREQ=WEEKLY;BYDAY=WE",
-      "from": "2026-06-08"
-    },
-    {
-      "id": "stocks",
-      "title": "Understanding the Stock Market",
-      "shortTitle": "Stock Market",
-      "description": "Dr. B. Aurora continues the series: reading a company's fundamentals.",
-      "category": "stock market",
-      "startTime": "15:00",
-      "endTime": "16:00",
+      "id": "yoga-thursday",
+      "title": "Yoga",
+      "description": "Coordinators: Mamta Arya and Rajeshwari Iyer.",
+      "category": "yoga",
+      "startTime": "10:30",
       "zoomLink": "default",
       "rrule": "FREQ=WEEKLY;BYDAY=TH",
-      "from": "2026-06-08"
+      "from": "2026-11-01"
     },
     {
-      "id": "bhajan",
-      "title": "Bhajan & Music Hour",
-      "shortTitle": "Bhajan",
-      "description": "Sing along or just listen: old favorites together over the phone.",
-      "category": "music",
-      "startTime": "11:00",
-      "endTime": "12:00",
-      "rrule": "FREQ=WEEKLY;BYDAY=FR",
-      "from": "2026-06-08"
+      "id": "care-share",
+      "title": "Care, Share and Positive Approach in Life",
+      "shortTitle": "Care & Share",
+      "description": "A discussion about life's experiences. Coordinators: Mamta Arya and Rajeshwari Iyer.",
+      "category": "talk",
+      "startTime": "19:30",
+      "zoomLink": "default",
+      "rrule": "FREQ=MONTHLY;BYDAY=1MO",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "art-crafts-music",
+      "title": "Art, Crafts and Music",
+      "shortTitle": "Art & Music",
+      "description": "Coordinator: Gita Raju.",
+      "category": "art",
+      "startTime": "19:30",
+      "zoomLink": "default",
+      "rrule": "FREQ=MONTHLY;BYDAY=2MO",
+      "from": "2026-11-01"
     },
     {
       "id": "finance",
-      "title": "Basic Finance",
-      "shortTitle": "Finance",
-      "description": "Shri Shonkar Manava on Social Security, senior discounts and household budgets.",
+      "title": "Finance",
+      "description": "Coordinators: Ratnaswamy Shankar and Laxmi Narayanan.",
       "category": "finance",
-      "startTime": "15:00",
-      "endTime": "16:00",
+      "startTime": "19:30",
       "zoomLink": "default",
-      "rrule": "FREQ=WEEKLY;BYDAY=FR",
-      "from": "2026-06-08"
+      "rrule": "FREQ=MONTHLY;BYDAY=3MO",
+      "from": "2026-11-01"
     },
     {
-      "id": "health",
-      "title": "Health Talk",
-      "shortTitle": "Health Talk",
-      "description": "A visiting clinician takes questions.",
-      "category": "health",
-      "startTime": "15:00",
-      "endTime": "16:00",
+      "id": "computer-group",
+      "title": "Computer Group",
+      "shortTitle": "Computer",
+      "description": "Coordinator: Surendra Bansal.",
+      "category": "computer",
+      "startTime": "19:30",
       "zoomLink": "default",
-      "rrule": "FREQ=WEEKLY;BYDAY=SA",
-      "from": "2026-06-08"
+      "rrule": "FREQ=MONTHLY;BYDAY=1WE,3WE",
+      "from": "2026-11-01"
     },
     {
-      "id": "social",
-      "title": "Chai & Chat: Sunday Social",
-      "shortTitle": "Chai & Chat",
-      "description": "No agenda, just neighbors. Bring your own chai.",
-      "category": "social",
-      "startTime": "16:00",
-      "endTime": "17:00",
+      "id": "economics",
+      "title": "Economic Analysis and Financial Discussion",
+      "shortTitle": "Economics",
+      "description": "Coordinators: Ashok Vohra and Raghunath Mehta.",
+      "category": "finance",
+      "startTime": "19:00",
       "zoomLink": "default",
-      "rrule": "FREQ=WEEKLY;BYDAY=SU",
-      "from": "2026-06-08"
+      "rrule": "FREQ=MONTHLY;BYDAY=1TH,3TH",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "book-club",
+      "title": "Book Club Discussion",
+      "shortTitle": "Book Club",
+      "description": "Coordinator: Bhuvaneswari Dorai.",
+      "category": "talk",
+      "startTime": "19:30",
+      "zoomLink": "default",
+      "rrule": "FREQ=MONTHLY;BYDAY=4TH",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "art-painting",
+      "title": "Art and Painting",
+      "shortTitle": "Art",
+      "description": "In person at 31 Zukor Road, New City. Coordinator: Suresh Bekal.",
+      "category": "art",
+      "startTime": "14:00",
+      "rrule": "FREQ=MONTHLY;BYDAY=2FR,4FR",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "karaoke",
+      "title": "Karaoke",
+      "description": "In person at 31 Zukor Road, New City. Coordinator: Hiten Vasa.",
+      "category": "music",
+      "startTime": "17:00",
+      "rrule": "FREQ=MONTHLY;BYDAY=2FR",
+      "from": "2026-11-01"
+    },
+    {
+      "id": "presentation",
+      "title": "Presentation on Topics of Interest",
+      "shortTitle": "Presentation",
+      "description": "Coordinators: Raghunath Mehta and Suresh Arya.",
+      "category": "talk",
+      "startTime": "19:30",
+      "zoomLink": "default",
+      "rrule": "FREQ=MONTHLY;BYDAY=4FR",
+      "from": "2026-11-01"
     }
   ],
-  "exceptions": [
-    {
-      "seriesId": "computer",
-      "date": "2026-06-09",
-      "description": "Bring your questions! This week: sending photos to family on WhatsApp.",
-      "isNew": true
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-06-10",
-      "title": "Art: Watercolor Painting",
-      "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone."
-    },
-    {
-      "seriesId": "stocks",
-      "date": "2026-06-11",
-      "description": "Dr. B. Aurora continues the series: what the fundamentals of a company mean."
-    },
-    {
-      "seriesId": "finance",
-      "date": "2026-06-12",
-      "description": "Shri Shonkar Manava discusses Social Security benefits and senior discounts."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-06-13",
-      "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy: rescheduled to next week's edition.",
-      "zoomLink": null,
-      "cancelled": true
-    },
-    {
-      "seriesId": "computer",
-      "date": "2026-06-16",
-      "description": "Bring your questions! Next up: video calls with the grandchildren."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-06-17",
-      "title": "Art: Summer Skies in Watercolor",
-      "description": "Warm washes and soft horizons. Beginners are very welcome."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-06-20",
-      "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy, warmly rescheduled from last week."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-06-24",
-      "title": "Art: Rangoli & Paper Craft",
-      "description": "Simple folded paper and bright colour. Everything you need is on the supplies list."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-06-27",
-      "title": "Diabetes & the Indian Kitchen",
-      "description": "Familiar food, gentler portions. Practical swaps that still taste like home."
-    },
-    {
-      "seriesId": "computer",
-      "date": "2026-06-30",
-      "description": "Bring your questions! This week: bigger text on your phone."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-07-01",
-      "title": "Art: Summer Skies in Watercolor",
-      "description": "A new series begins with Mrs. Kapoor. Supplies list by phone.",
-      "isNew": true
-    },
-    {
-      "seriesId": "stocks",
-      "date": "2026-07-02",
-      "description": "Dr. B. Aurora on reading the business pages without worry.",
-      "zoomLink": "default"
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-07-04",
-      "title": "Fall Prevention at Home",
-      "description": "A room-by-room look at what to move, what to add, and what to light."
-    },
-    {
-      "seriesId": "yoga",
-      "date": "2026-07-06",
-      "description": "Gentle chair yoga and breathing with Smita ji."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-07-08",
-      "title": "Art: Summer Skies",
-      "description": "Watercolors return with Mrs. Kapoor."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-07-11",
-      "title": "Sleep & Aging",
-      "description": "Why sleep changes after sixty, and what actually helps."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-07-15",
-      "title": "Art: Portrait Sketching",
-      "description": "Faces, gently: proportion and shading, one step at a time."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-07-18",
-      "title": "Memory & Brain Health",
-      "description": "Everyday forgetfulness versus the kind worth a doctor's visit."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-07-22",
-      "title": "Art: Watercolor Painting",
-      "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-07-25",
-      "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy: recognising it, and the help that exists."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-07-29",
-      "title": "Art: Summer Skies in Watercolor",
-      "description": "Warm washes and soft horizons. Beginners are very welcome."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-08-01",
-      "title": "Managing Blood Pressure",
-      "description": "What the numbers mean, and small daily habits that move them."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-08-05",
-      "title": "Art: Rangoli & Paper Craft",
-      "description": "Simple folded paper and bright colour. Everything you need is on the supplies list."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-08-08",
-      "title": "Diabetes & the Indian Kitchen",
-      "description": "Familiar food, gentler portions. Practical swaps that still taste like home."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-08-12",
-      "title": "Art: Drawing from Memory",
-      "description": "Sketch a room from your childhood. No skill needed, only a pencil."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-08-15",
-      "title": "Fall Prevention at Home",
-      "description": "A room-by-room look at what to move, what to add, and what to light."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-08-19",
-      "title": "Art: Autumn Leaves in Pastel",
-      "description": "Soft pastels and the colours of the season with Mrs. Kapoor."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-08-22",
-      "title": "Sleep & Aging",
-      "description": "Why sleep changes after sixty, and what actually helps."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-08-26",
-      "title": "Art: Portrait Sketching",
-      "description": "Faces, gently: proportion and shading, one step at a time."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-08-29",
-      "title": "Memory & Brain Health",
-      "description": "Everyday forgetfulness versus the kind worth a doctor's visit."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-09-02",
-      "title": "Art: Watercolor Painting",
-      "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-09-05",
-      "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy: recognising it, and the help that exists."
-    },
-    {
-      "seriesId": "yoga",
-      "date": "2026-09-07",
-      "skip": true
-    },
-    {
-      "seriesId": "computer",
-      "date": "2026-09-08",
-      "isNew": true
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-09-09",
-      "title": "Art: Summer Skies in Watercolor",
-      "description": "Warm washes and soft horizons. Beginners are very welcome."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-09-12",
-      "title": "Managing Blood Pressure",
-      "description": "What the numbers mean, and small daily habits that move them."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-09-16",
-      "title": "Art: Rangoli & Paper Craft",
-      "description": "Simple folded paper and bright colour. Everything you need is on the supplies list.",
-      "isNew": true
-    },
-    {
-      "seriesId": "stocks",
-      "date": "2026-09-17",
-      "cancelled": true
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-09-19",
-      "title": "Diabetes & the Indian Kitchen",
-      "description": "Familiar food, gentler portions. Practical swaps that still taste like home."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-09-23",
-      "title": "Art: Drawing from Memory",
-      "description": "Sketch a room from your childhood. No skill needed, only a pencil."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-09-26",
-      "title": "Fall Prevention at Home",
-      "description": "A room-by-room look at what to move, what to add, and what to light."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-09-30",
-      "title": "Art: Autumn Leaves in Pastel",
-      "description": "Soft pastels and the colours of the season with Mrs. Kapoor."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-10-03",
-      "title": "Sleep & Aging",
-      "description": "Why sleep changes after sixty, and what actually helps."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-10-07",
-      "title": "Art: Portrait Sketching",
-      "description": "Faces, gently: proportion and shading, one step at a time."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-10-10",
-      "title": "Memory & Brain Health",
-      "description": "Everyday forgetfulness versus the kind worth a doctor's visit."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-10-14",
-      "title": "Art: Watercolor Painting",
-      "description": "Monsoon skies in watercolor with Mrs. Kapoor. Supplies list by phone."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-10-17",
-      "title": "Depression in Older Adults",
-      "description": "Talk with Dr. Raghutworthy: recognising it, and the help that exists."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-10-21",
-      "title": "Art: Summer Skies in Watercolor",
-      "description": "Warm washes and soft horizons. Beginners are very welcome."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-10-24",
-      "title": "Managing Blood Pressure",
-      "description": "What the numbers mean, and small daily habits that move them."
-    },
-    {
-      "seriesId": "art",
-      "date": "2026-10-28",
-      "title": "Art: Rangoli & Paper Craft",
-      "description": "Simple folded paper and bright colour. Everything you need is on the supplies list."
-    },
-    {
-      "seriesId": "health",
-      "date": "2026-10-31",
-      "title": "Diabetes & the Indian Kitchen",
-      "description": "Familiar food, gentler portions. Practical swaps that still taste like home."
-    }
-  ],
-  "events": [
-    {
-      "title": "International Yoga Day Special",
-      "description": "A longer session for Yoga Day, with tea and talk after.",
-      "category": "yoga",
-      "date": "2026-06-21",
-      "startTime": "10:00",
-      "endTime": "11:30",
-      "zoomLink": "default"
-    },
-    {
-      "title": "Independence Day Social",
-      "description": "Lemonade on Zoom before the fireworks. All welcome.",
-      "category": "social",
-      "date": "2026-07-04",
-      "startTime": "16:00",
-      "endTime": "17:00",
-      "zoomLink": "default"
-    },
-    {
-      "title": "India Independence Day Special",
-      "description": "Songs, the flag, and a short talk on the freedom movement. All welcome.",
-      "category": "social",
-      "date": "2026-08-15",
-      "startTime": "11:00",
-      "endTime": "12:30",
-      "zoomLink": "default"
-    },
-    {
-      "title": "Autumn Health Fair: Ask the Pharmacist",
-      "description": "Bring your medicine list. Free one-to-one review, twenty minutes each.",
-      "category": "health",
-      "date": "2026-10-03",
-      "startTime": "11:00",
-      "endTime": "13:00",
-      "zoomLink": "default",
-      "isNew": true
-    }
-  ]
+  "exceptions": [],
+  "events": []
 }
