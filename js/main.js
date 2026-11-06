@@ -11,7 +11,7 @@ import {
   renderStandingPrograms, filterWeek, filterMonth, weekLabelFor,
   monthTitle, monthBounds,
 } from "./schedule.js";
-import { todayIso, monthKey, MONTHS } from "./dates.js";
+import { todayIso, monthKey, MONTHS, DAYS } from "./dates.js";
 import { initWeatherEar, initForecastBox } from "./weather.js";
 import { initAlmanac } from "./almanac.js";
 import { transition, motionOK } from "./motion.js";
@@ -61,6 +61,13 @@ async function fillSchedule() {
     const weekSchedule =
       ok && schedule ? { ...schedule, events: filterWeek(schedule.events, now) } : null;
     renderSchedule(datebook, weekSchedule);
+    // Worth a button only once today is not already the first day listed.
+    const todayLink = document.getElementById("today-link");
+    const today = document.getElementById("today");
+    if (todayLink && today && today !== datebook.querySelector(".day-section")) {
+      todayLink.textContent = `Go to today, ${DAYS[now.getDay()]}`;
+      todayLink.hidden = false;
+    }
   }
 
   // The dateline is computed, never typed.
@@ -96,7 +103,8 @@ function initMonthView(container, schedule) {
   // The rhythm, stated once in words, above the month that varies it.
   const standing = document.getElementById("standing-programs");
   if (standing) {
-    renderStandingPrograms(standing, activeSeries(schedule?.series, todayIso()), describeSeries);
+    renderStandingPrograms(standing, activeSeries(schedule?.series, todayIso()), describeSeries,
+      { open: matchMedia("(min-width: 720px)").matches });
   }
 
   const fromParam = /^\d{4}-\d{2}$/.test(new URLSearchParams(location.search).get("m") || "")
@@ -143,7 +151,10 @@ function initMonthView(container, schedule) {
     let panel = null;
     for (const cell of container.querySelectorAll(".tt-day.has-events")) {
       const open = cell.dataset.date === selected;
-      cell.setAttribute("aria-expanded", String(open && narrow.matches));
+      // Only the phone's drawer opens under the day; the wide calendar shows
+      // the day below the grid, so it has nothing to call expanded.
+      if (narrow.matches) cell.setAttribute("aria-expanded", String(open));
+      else cell.removeAttribute("aria-expanded");
       if (!open) continue;
       panel = document.createElement("div");
       panel.className = "tt-inline datebook";
@@ -157,6 +168,9 @@ function initMonthView(container, schedule) {
     selected = narrow.matches && iso === selected ? null : iso;
     for (const cell of container.querySelectorAll(".tt-day[data-date]")) {
       cell.classList.toggle("is-selected", cell.dataset.date === selected);
+      // The chosen day says so, as it does when the month is first drawn.
+      if (cell.dataset.date === selected) cell.setAttribute("aria-current", "date");
+      else cell.removeAttribute("aria-current");
     }
     const panel = openUnderDay();
     if (!dayPrograms) return;

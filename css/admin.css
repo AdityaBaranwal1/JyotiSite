@@ -381,6 +381,11 @@
 /* The day dialog is a plain list, not the long form: keep its old spacing. */
 #day-dialog { padding: 26px 28px; }
 #day-dialog .dialog-actions { padding: 0; margin-top: 22px; border-top: 0; position: static; }
+/* A busy day is taller than a phone: the list scrolls, and the heading and
+   "Add a program" / "Close" always stay on the screen. */
+#day-dialog[open] { display: flex; flex-direction: column; }
+#day-dialog > :not(#day-dialog-list) { flex: 0 0 auto; }
+#day-dialog-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
 .btn--danger { border-color: var(--ink); }
 .btn--danger:hover { background: #d9534f; color: #fff; }

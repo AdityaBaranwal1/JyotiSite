@@ -87,9 +87,9 @@
           <h2 id="desk-title">This Week</h2>
           <hr class="thick-thin">
           <p class="byline">Press <strong>Change</strong> to alter a program, or
-            <strong>Cancel this date</strong> if it is not happening. For a program that
-            happens every week, you will be asked whether to change just that date or every
-            week from then on.</p>
+            <strong>Cancel this date</strong> if it is not happening. For a regular
+            program, you will be asked whether to change just that date or every date
+            from then on.</p>
         </div>
 
         <div class="desk-toolbar">
@@ -164,7 +164,7 @@
     </main>
 
     <!-- ================= THE PAPER, AS READERS SEE IT ================= -->
-    <dialog id="preview-dialog" class="preview-dialog">
+    <dialog id="preview-dialog" class="preview-dialog" aria-labelledby="preview-title">
       <div class="preview-head">
         <h2 id="preview-title">The paper, as readers see it</h2>
         <div class="view-toggle" role="group" aria-label="Which page to show">
@@ -177,7 +177,7 @@
     </dialog>
 
     <!-- ================= ONE DAY (from the month view) ================= -->
-    <dialog id="day-dialog" class="event-dialog">
+    <dialog id="day-dialog" class="event-dialog" aria-labelledby="day-dialog-title">
       <h2 id="day-dialog-title">Programs</h2>
       <hr class="thick-thin">
       <div id="day-dialog-list"></div>
@@ -191,7 +191,7 @@
          One form for every program. For a weekly program it first asks which
          dates the change is for; js/admin.js shows the fields and actions
          that fit the answer. -->
-    <dialog id="event-dialog" class="event-dialog">
+    <dialog id="event-dialog" class="event-dialog" aria-labelledby="event-dialog-title">
       <!-- novalidate: js/admin.js checks the fields itself, in plain words, and
            the browser would otherwise refuse to save over a hidden date box. -->
       <form method="dialog" id="event-form" novalidate>
@@ -217,7 +217,7 @@
             <input id="ev-date" type="date" required>
           </div>
           <div class="field span2" id="f-day" hidden>
-            <label for="ev-day">Which day of the week</label>
+            <label for="ev-day" id="ev-day-label">Which day of the week</label>
             <select id="ev-day"></select>
             <p class="field-note" id="ev-day-text" hidden></p>
           </div>

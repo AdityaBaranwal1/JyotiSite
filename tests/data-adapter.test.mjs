@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeEvent, normalizeSchedule, getSchedule, joinLabel } from "../js/data-adapter.js";
+import { normalizeEvent, normalizeSchedule, getSchedule, joinLabel, describeSeries } from "../js/data-adapter.js";
 
 const valid = {
   title: "Yoga & Guided Meditation",
@@ -112,4 +112,18 @@ test("joinLabel: the button names the service the link opens", () => {
   assert.equal(joinLabel("https://us02web.zoom.us/j/123"), "Join on Zoom");
   assert.equal(joinLabel("https://zoom.us.example.com/j/1"), "Join online", "a look-alike host is not Zoom");
   assert.equal(joinLabel("https://teams.microsoft.com/l/x"), "Join online");
+});
+
+test("describeSeries: says the rhythm the way the flyer does", () => {
+  const say = (rrule) => describeSeries({ rrule });
+  assert.equal(say("FREQ=WEEKLY;BYDAY=MO"), "Every Monday");
+  assert.equal(say("FREQ=WEEKLY;BYDAY=MO,WE"), "Every Monday and Wednesday");
+  assert.equal(say("FREQ=WEEKLY;BYDAY=MO,TU,WE,FR"), "Every Monday, Tuesday, Wednesday and Friday");
+  assert.equal(say("FREQ=MONTHLY;BYDAY=1MO"), "First Monday of the month");
+  assert.equal(say("FREQ=MONTHLY;BYDAY=1WE,3WE"), "First and third Wednesday of the month");
+  assert.equal(say("FREQ=MONTHLY;BYDAY=+2FR,+4FR"), "Second and fourth Friday of the month");
+  assert.equal(say("FREQ=MONTHLY;BYDAY=1TH,3TH,-1TH"), "First, third and last Thursday of the month");
+  // Two different weekdays in one month is left to rrule's own words.
+  assert.match(say("FREQ=MONTHLY;BYDAY=1MO,3WE"), /^Every month on the 1st Monday/);
+  assert.equal(say("not a rule"), "");
 });

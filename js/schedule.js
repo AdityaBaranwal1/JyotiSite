@@ -172,7 +172,12 @@ export function renderSchedule(container, schedule, { now = new Date() } = {}) {
     meta.appendChild(el("span", "day-name", DAYS[d.getDay()]));
     meta.appendChild(el("span", "day-date", `${MONTHS[d.getMonth()]} ${d.getDate()}`));
     head.appendChild(meta);
-    if (isToday(group.date, now)) head.appendChild(stamp("Today", "stamp--today"));
+    if (isToday(group.date, now)) {
+      head.appendChild(stamp("Today", "stamp--today"));
+      // the front page's "Go to today's programs" lands here
+      section.id = "today";
+      section.tabIndex = -1;
+    }
     section.appendChild(head);
 
     const body = el("div", "day-body");
@@ -286,7 +291,10 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
       cell.classList.add("is-quiet");
     }
     if (isToday(iso, now)) cell.classList.add("is-today");
-    if (iso === selected) cell.classList.add("is-selected");
+    if (iso === selected) {
+      cell.classList.add("is-selected");
+      cell.setAttribute("aria-current", "date");
+    }
 
     const head = el("div", "tt-daynum");
     // The weekday only needs printing when the columns collapse on a phone,
@@ -315,10 +323,18 @@ export function renderTimetable(container, events, { year, month1, now = new Dat
 }
 
 /* The rhythm stated in words, once, so a reader who never reads the grid
-   still learns which day their class meets. */
-export function renderStandingPrograms(container, series, describe) {
+   still learns which day their class meets. It folds away (`open: false`,
+   on a phone) so the month's days are not a long scroll below it. */
+export function renderStandingPrograms(container, series, describe, { open = true } = {}) {
   container.textContent = "";
   if (!series || series.length === 0) return;
+
+  const fold = el("details", "standing-fold");
+  fold.open = open;
+  const summary = el("summary");
+  summary.append(el("span", "standing-fold-title", "Our regular programs"),
+    el("span", "standing-fold-note", `${series.length} programs and the days they meet`));
+  fold.appendChild(summary);
 
   const list = el("dl", "standing");
   for (const s of series) {
@@ -330,5 +346,6 @@ export function renderStandingPrograms(container, series, describe) {
     row.appendChild(what);
     list.appendChild(row);
   }
-  container.appendChild(list);
+  fold.appendChild(list);
+  container.appendChild(fold);
 }

@@ -475,12 +475,16 @@ function openEditor({ occurrence = null, presetDate = null } = {}) {
     fillDays($("#ev-day"), day);
     $("#ev-day").hidden = !day;          // a richer rhythm is stated, not offered
     $("#ev-day-text").hidden = Boolean(day);
+    $("#ev-day-label").textContent = day ? "Which day of the week" : "When it meets";
     $("#ev-day-text").textContent = describeSeries(series);
   }
   $("#ev-more").open = false;
   $("#event-msg").textContent = "";
   applyScope();
   dialog.showModal();
+  // Always open at the top, so "Change which dates?" and its answer are in
+  // view before Save — never where the last program's form was scrolled to.
+  $("#event-form .field-grid").scrollTop = 0;
 }
 
 /* Show what fits the answer to "which dates?". */
@@ -496,10 +500,16 @@ function applyScope() {
     $("#scope-weekly").textContent = `Every ${day}, from then on`;
     $("#scope-weekly-note").textContent = "It goes on the paper every week until you stop it.";
   } else if (series && from) {
+    // A program that is not simply once a week says its own rhythm
+    // ("First and third Wednesday of the month"), never "every week".
+    const everyWeek = Boolean(weekdayOf(series.rrule));
     $("#scope-date").textContent = `Only ${longDate(o.date)}`;
-    $("#scope-date-note").textContent = "The other weeks stay as they are.";
-    $("#scope-weekly").textContent = `Every week, from ${longDate(from)} on`;
-    $("#scope-weekly-note").textContent = "Dates before that stay as they were.";
+    $("#scope-date-note").textContent = `The other ${everyWeek ? "weeks" : "dates"} stay as they are.`;
+    // A short heading; a monthly rhythm goes on the line under it, so the
+    // choice stays small on a phone and the times show without scrolling.
+    $("#scope-weekly").textContent = `${everyWeek ? "Every week" : "Every date"}, from ${longDate(from)} on`;
+    $("#scope-weekly-note").textContent =
+      `${everyWeek ? "" : `${describeSeries(series)}. `}Dates before that stay as they were.`;
     // Each answer starts from its own details, until the volunteer types.
     if (!editing.touched) fillDetails(weekly ? series : o);
   }
@@ -591,7 +601,7 @@ $("#event-form").addEventListener("submit", (e) => {
     `you changed by hand from ${longDate(from)} on, such as a cancelled week. Move it anyway?`)) return;
   save(moved
     ? `${form.title} moved to ${dayName(weekday)}s, from ${longDate(from)}`
-    : `${form.title} changed every week, from ${longDate(from)}`,
+    : `${form.title} changed ${weekdayOf(series.rrule) ? "every week" : "on all its dates"}, from ${longDate(from)}`,
   (s) => changeSeries(s, series.id, { ...form, endTime: form.endTime || "", weekday }, from), from);
 });
 

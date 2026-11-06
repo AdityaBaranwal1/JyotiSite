@@ -52,10 +52,10 @@ button, input, select { font: inherit; color: inherit; }
 body {
   background-color: var(--paper);
   /* Texture: a halftone dot screen (like newsprint under a loupe) over a
-     faint grain. Ink dots at ~6% — perceivable, never in the way of text.
+     faint grain. Ink dots at ~3.5% — perceivable, never in the way of text.
      Solid panels still cover it; text never sits on strong texture. */
   background-image:
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><g fill="%231F2D50" opacity="0.062"><circle cx="4" cy="4" r="1.35"/><circle cx="12" cy="12" r="1.35"/></g></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><g fill="%231F2D50" opacity="0.035"><circle cx="4" cy="4" r="1.35"/><circle cx="12" cy="12" r="1.35"/></g></svg>'),
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.05" intercept="0"/></feComponentTransfer></filter><rect width="240" height="240" filter="url(%23g)"/></svg>');
   color: var(--ink);
   font-family: var(--font-body);
@@ -242,7 +242,7 @@ hr.hairline {
   transform: rotate(-4deg);
   background: transparent;
 }
-.stamp--today     { color: var(--accent); border-color: var(--accent); }
+.stamp--today     { color: var(--ink); background: var(--accent); border-color: var(--ink); }
 .stamp--cancelled { transform: rotate(-8deg); }
 
 /* ---------- Skip link (keyboard users go straight to news) ---------- */

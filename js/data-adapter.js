@@ -12,7 +12,7 @@ import * as rrulePkg from "rrule";
 const pickRRule = (ns) => ns.RRule ?? ns.default?.RRule ?? ns.default;
 const RRule = pickRRule(rrulePkg);
 
-import { isoOf } from "./dates.js";
+import { isoOf, DAYS } from "./dates.js";
 
 export const SCHEDULE_URL = "data/schedule.json";
 const CACHE_KEY = "jyoti-schedule-cache";
@@ -53,10 +53,34 @@ export function activeSeries(series, today) {
     (s) => s && typeof s === "object" && (!s.until || s.until >= today));
 }
 
+/* "Every Monday and Wednesday", "First and third Wednesday of the month":
+   the rhythm as the community's own flyer says it. rrule's prose ("every
+   month on the 1st Wednesday and 3rd Wednesday") is kept for anything
+   richer, such as two different weekdays in one month. */
+const NTH = { "1": "first", "2": "second", "3": "third", "4": "fourth", "5": "fifth", "-1": "last" };
+const DAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const dayWord = (code) => DAYS[DAY_CODES.indexOf(code)];
+const listed = (words) => words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : words[0];
+
+function rhythmInWords(rrule) {
+  const m = /^FREQ=(WEEKLY|MONTHLY);BYDAY=([^;]+)$/.exec(String(rrule ?? ""));
+  if (!m) return null;
+  const days = m[2].split(",").map((p) => /^\+?(-1|\d)?(SU|MO|TU|WE|TH|FR|SA)$/.exec(p));
+  if (days.some((d) => !d)) return null;
+  if (m[1] === "WEEKLY") {
+    return days.some((d) => d[1]) ? null : `Every ${listed(days.map((d) => dayWord(d[2])))}`;
+  }
+  if (days.some((d) => !NTH[d[1]]) || new Set(days.map((d) => d[2])).size > 1) return null;
+  const said = listed(days.map((d) => NTH[d[1]]));
+  return `${said[0].toUpperCase()}${said.slice(1)} ${dayWord(days[0][2])} of the month`;
+}
+
 /* "every week on Monday" — rrule's own prose, tidied for the paper's voice.
    Used by the standing-programs strip, which states the rhythm in words so a
    reader who never looks at the grid still learns when their class meets. */
 export function describeSeries(s) {
+  const plain = rhythmInWords(s?.rrule);
+  if (plain) return plain;
   try {
     const text = RRule.fromString(`RRULE:${s.rrule}`).toText();
     return text.replace(/^every week on /, "Every ").replace(/^every /, "Every ");

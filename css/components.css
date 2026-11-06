@@ -191,9 +191,15 @@ nav.paper-nav a[aria-current="page"] {
    real button, named for the month, right under the week's deck. */
 .month-link { margin-top: 16px; padding-inline: 22px 26px; }
 .month-link-icon { width: 26px; height: 26px; flex: none; }
+.month-link, .today-link { vertical-align: top; }
+.today-link { margin-top: 16px; margin-left: 12px; }
 @media (max-width: 560px) {
   .month-link { display: flex; width: 100%; }
+  .today-link { display: flex; justify-content: center; width: 100%; margin-left: 0; margin-top: 12px; }
 }
+/* Landing on today from that button: a little air above the day's rule. */
+#today { scroll-margin-top: 16px; }
+#today:focus { outline: none; }
 
 /* ---------- The Datebook (weekly schedule) ---------- */
 .datebook { max-width: none; }
@@ -279,6 +285,18 @@ nav.paper-nav a[aria-current="page"] {
   .listing .l-action .btn { width: 100%; }
   .masthead { grid-template-columns: 1fr; }
   .weather-ear { grid-column: 1; justify-self: center; max-width: none; width: 100%; }
+  /* On a phone the weather is one line under the nameplate, so the week's
+     first program shows sooner; the box keeps its name for screen readers. */
+  .weather-ear:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 14px;
+    padding: 8px 14px;
+  }
+  .weather-ear .we-label, .weather-ear .we-place { display: none; }
+  .weather-ear .we-temp { font-size: calc(var(--text-size) * 1.3); }
+  .weather-ear .we-glyph svg { width: 30px; height: 30px; }
 }
 
 /* ---------- Month view: the listings page ---------- */
@@ -760,12 +778,44 @@ footer.colophon .foot-links > * {
    month's rhythm is readable at a glance. Marigold is rationed to two jobs:
    TODAY, and anything that is not the usual. Everything else is ink. */
 
+/* The fold around them: the desk's square +/- sign, so it is one control
+   to learn on both sides of the paper. */
+.standing-fold { margin: 0 0 30px; border-top: var(--rule-thick); }
+.standing-fold > summary {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  column-gap: 14px;
+  align-items: center;
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.standing-fold > summary::-webkit-details-marker { display: none; }
+.standing-fold > summary::before {
+  content: "+";
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  border: 2px solid var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+}
+.standing-fold[open] > summary::before { content: "−"; background: var(--ink); color: var(--panel); }
+.standing-fold > summary:hover::before { background: var(--accent-soft); }
+.standing-fold[open] > summary:hover::before { background: var(--ink); }
+.standing-fold-title { font-family: var(--font-head); font-weight: 700; font-size: calc(var(--text-size) * 1.15); }
+.standing-fold-note { font-family: var(--font-body); font-size: max(17px, calc(var(--text-size) * 0.85)); }
+
 .standing {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
   gap: 0;
-  margin: 0 0 30px;
-  border-top: var(--rule-thick);
+  margin: 0;
+  border-top: var(--hairline);
 }
 .standing-row {
   border-bottom: var(--hairline);
